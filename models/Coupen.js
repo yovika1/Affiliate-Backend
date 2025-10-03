@@ -4,7 +4,7 @@ import mongoose from "mongoose";
 const offerSchema = new mongoose.Schema({
   productTitle: { type: String, required: true, trim: true },
   imageUrl: { type: String, required: true, trim: true },
-  affiliateUrl: { type: String, required: true, trim: true }, // 🔹 renamed for clarity
+  affiliateUrl: { type: String, required: true, trim: true }, 
   category: {
     type: String,
     enum: ["fashion", "beauty", "cosmetics", "general"],
@@ -17,7 +17,7 @@ const offerSchema = new mongoose.Schema({
   expiry: { type: Date },         // countdown
   featured: { type: Boolean, default: false },
 
-  // ⭐ New fields
+  
   rating: { type: Number, default: 0 },         // average rating (e.g. 4.5)
   ratingsCount: { type: Number, default: 0 },   // how many people rated
   badges: [{ type: String }],                   // e.g. ["Best Seller", "Limited Offer"]

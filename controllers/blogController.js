@@ -4,7 +4,7 @@ import Blog from '../models/Blog.js'
   export const getBlogs = async (req, res) => {
     try {
       const blogs = await Blog.find();
-      res.json(blogs);
+res.json({  blogs });
     } catch (error) {
       res.status(500).json({ message: error.message });
     }
@@ -16,7 +16,8 @@ export const createBlog = async (req, res) => {
     const blog = new Blog(req.body)
     
     await blog.save();
-    res.status(201).json(blog);
+    res.status(201).json({ blog });
+;
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -33,7 +34,7 @@ export const getBlogById = async (req, res) => {
     if (!blog) {
       return res.status(404).json({ message: "Blog not found" });
     }
-    res.json(blog);
+res.json({ blog });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -45,12 +46,12 @@ export const updateBlog = async (req, res) => {
   try {
     const blog = await Blog.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!blog) return res.status(404).json({ message: "Blog not found" });
-    res.json(blog);
+res.json({ blog });
+;
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 };
-
 
 
 // ✅ DELETE blog by ID

@@ -8,7 +8,7 @@ const blogSchema = new mongoose.Schema(
     productTitle: { type: String, required: true, trim: true },
     category: {
       type: String,
-      enum: ["fashion", "beauty", "general"], // restricts to known values
+      enum: ["fashion", "beauty", "general"], 
       required: true,
       default: "general",
     },
@@ -21,7 +21,7 @@ const blogSchema = new mongoose.Schema(
           type: String,
           enum: ["original", "discount", "feature"],
           default: "feature",
-        }, // ✅ add type
+        }, 
       },
     ],
   },

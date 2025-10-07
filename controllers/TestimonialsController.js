@@ -33,7 +33,6 @@ export const getTestimonials = async (req, res) => {
     const filter = { approved: true };
     if (blogId) filter.blogId = blogId;
 
-    // ❌ You wrote "Testimonial" instead of "Testimonials"
     const testimonials = await Testimonials.find(filter)
       .sort({ createdAt: -1 })
       .limit(20);
@@ -45,7 +44,6 @@ export const getTestimonials = async (req, res) => {
   }
 };
 
-// ✅ Get ALL testimonials (for admin panel)
 export const getAllTestimonials = async (req, res) => {
   try {
     const testimonials = await Testimonials.find()

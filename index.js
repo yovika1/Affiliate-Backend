@@ -7,6 +7,7 @@ import blogRoutes from "./routes/blogRoutes.js";
 import coupenRoutes from "./routes/coupenRoutes.js";
 import FeedbackRouter from "./routes/FeedbackRoutes.js";
 import GuidanceRouter from "./routes/GuideRoutes.js";
+import testimonialRouter from "./routes/TestimonialsRoutes.js";
 
 const app = express()
 dotenv.config();
@@ -21,6 +22,7 @@ app.use(blogRoutes)
 app.use(coupenRoutes)
 app.use(FeedbackRouter)
 app.use(GuidanceRouter)
+app.use(testimonialRouter)
 
 // app.use(router)
 

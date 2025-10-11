@@ -1,18 +1,20 @@
 import nodemailer from "nodemailer";
 
-// Create reusable transporter
+import dotenv from 'dotenv';
+dotenv.config();
+
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: process.env.EMAIL_USER,
+    user:process.env.EMAIL_ADMIN,
     pass: process.env.EMAIL_PASS,
   },
 });
-console.log("🔍 EMAIL_USER =", process.env.EMAIL_USER);
-console.log("🔍 EMAIL_PASS length =", process.env.EMAIL_PASS?.length);
+console.log("EMAIL_ADMIN =", process.env.EMAIL_ADMIN);
+console.log("EMAIL_PASS exists?", !!process.env.EMAIL_PASS);
 
 
-// ✅ Test transporter on startup
+
 transporter.verify((error, success) => {
   if (error) {
     console.error("❌ Nodemailer Transporter Error:", error.message);
@@ -21,7 +23,7 @@ transporter.verify((error, success) => {
   }
 });
 
-// ✅ Send feedback alert to admin
+
 export const sendFeedbackEmail = async (feedbackData) => {
   try {
     const { feedbackType, feedbackText, category, userEmail } = feedbackData;
@@ -42,10 +44,11 @@ export const sendFeedbackEmail = async (feedbackData) => {
     `;
 
     await transporter.sendMail({
-      from: `"Blog Feedback" <${process.env.EMAIL_USER}>`,
-      to: process.env.EMAIL_USER, // ✅ Admin email
+      from: `"Blog Feedback" <${process.env.EMAIL_ADMIN}>`,
+      to: process.env.EMAIL_ADMIN,
       subject: `New Blog Feedback (${category || "General"})`,
       html: htmlContent,
+      replyTo: userEmail || undefined, 
     });
 
     console.log("✅ Feedback email sent successfully to admin");
@@ -65,9 +68,11 @@ export const sendReplyToUser = async (userEmail, replyMessage) => {
     console.log("📩 Attempting to send reply to:", userEmail);
 
     await transporter.sendMail({
-      from: `"Blog Support" <${process.env.EMAIL_USER}>`,
+      from: `"Blog Support" <${process.env.EMAIL_ADMIN}>`,
       to: userEmail,
       subject: "Reply to your feedback",
+        replyTo: userEmail || undefined, 
+
       html: `
         <div style="font-family: Arial, sans-serif; line-height:1.5;">
           <h2>💬 Response from our team</h2>

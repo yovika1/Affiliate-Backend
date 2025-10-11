@@ -1,4 +1,5 @@
 import express from "express";
+dotenv.config();
 import dotenv from "dotenv"
 import cors from "cors";
 import connectDB from "./dbConnection/Connection.js";
@@ -10,7 +11,6 @@ import GuidanceRouter from "./routes/GuideRoutes.js";
 import testimonialRouter from "./routes/TestimonialsRoutes.js";
 
 const app = express()
-dotenv.config();
 
 app.use(express.json());
 app.use(cors({origin: "*",

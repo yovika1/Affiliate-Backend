@@ -9,7 +9,7 @@ export const sendFeedback = async (req, res) => {
       return res.status(400).json({ error: "Feedback type is required" });
     }
 
-    // ✅ Save to DB
+    
     const feedback = new Feedback({
       blogId,
       feedbackType,
@@ -43,7 +43,6 @@ export const getAllFeedback = async (req, res) => {
   }
 };
 
-// controllers/feedbackController.js
 export const markFeedbackResolved = async (req, res) => {
   try {
     const { id } = req.params;
@@ -85,9 +84,8 @@ export const replyToFeedback = async (req, res) => {
     // Send reply email
     await sendReplyToUser(feedback.userEmail, replyMessage);
 
-    // Only mark as resolved if email was sent successfully
     feedback.resolved = true;
-    feedback.replyMessage = replyMessage; // store reply in DB (optional)
+    feedback.replyMessage = replyMessage; 
     await feedback.save();
 
     res.status(200).json({

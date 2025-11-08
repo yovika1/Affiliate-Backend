@@ -9,6 +9,7 @@ import coupenRoutes from "./routes/coupenRoutes.js";
 import FeedbackRouter from "./routes/FeedbackRoutes.js";
 import GuidanceRouter from "./routes/GuideRoutes.js";
 import testimonialRouter from "./routes/TestimonialsRoutes.js";
+import './Utils/PriceUpdater.js'
 
 const app = express()
 

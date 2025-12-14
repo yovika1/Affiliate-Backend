@@ -4,7 +4,8 @@ import { fetchProductPrice } from "./fetchProductPrice.js";
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function updateAllProductPrices() {
+export async function updateAllProductPrices() {
+  console.log("🔄 Running daily price update...");
 
   try {
     const products = await Product.find();
@@ -12,55 +13,27 @@ async function updateAllProductPrices() {
     for (const [i, product] of products.entries()) {
       await sleep(2000);
 
-      const targetUrl = product.productUrl || product.affiliateUrl;
+      const data = await fetchProductPrice(product.productUrl);
 
-      // ✅ Skip if no valid URL
-      if (!targetUrl) {
-        console.log(
-          `⚠️ [${i + 1}] Skipping product with no valid URL: ${
-            product.productName
-          }`
-        );
+      if (!data || !data.currentPrice) {
+        console.log(`⚠️ [${i + 1}] Skipping invalid product: ${product.productName}`);
         continue;
       }
 
-      const priceData = await fetchProductPrice(targetUrl);
-      if (priceData.productName === "Unknown Product") {
-        console.log(
-          `🚫 [${i + 1}] Skipping invalid product: ${product.productName}`
-        );
-        continue;
-      }
+      product.currentPrice = data.currentPrice;
+      product.originalPrice = data.originalPrice;
+      product.discount = data.discount;
+     
 
-      if (priceData && priceData.currentPrice) {
-        const { currentPrice, originalPrice } = priceData;
-
-        if (currentPrice !== product.currentPrice) {
-          product.originalPrice =
-            originalPrice || product.originalPrice || product.currentPrice;
-          product.currentPrice = currentPrice;
-          product.lastUpdated = new Date();
-
-          await product.save();
-        } else {
-          console.log(`✅ [${i + 1}] ${product.productName} is up-to-date`);
-        }
-      } else {
-        console.log(
-          `⚠️ [${i + 1}] Skipped invalid or missing product data for ${
-            product.productName
-          }`
-        );
-      }
+      await product.save();
+      console.log(`✔️ [${i + 1}] Updated: ${product.productName}`);
     }
 
-  } catch (err) {
-    console.error("❌ Error updating prices:", err.message);
+    console.log("🎉 All prices updated successfully!");
+  } catch (error) {
+    console.log("❌ Error updating prices:", error);
   }
 }
 
-// ⏰ Run every day at 1 AM
-cron.schedule("0 1 * * *", updateAllProductPrices);
-
-// Run immediately on startup 
-updateAllProductPrices();
+// Run every day at midnight
+cron.schedule("0 0 * * *", updateAllProductPrices);

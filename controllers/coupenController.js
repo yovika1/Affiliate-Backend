@@ -1,11 +1,9 @@
 import { Offer } from "../models/Coupen.js";
 
-// Mock Amazon API (empty until you integrate real API)
 const fetchAmazonOffers = async () => {
-  return []; // for now, return nothing
+  return []; 
 };
 
-// Get all offers (merged)
 export const getOffers = async (req, res) => {
   try {
     const now = new Date();
@@ -16,7 +14,6 @@ export const getOffers = async (req, res) => {
 
     const amazonOffers = await fetchAmazonOffers();
 
-    // 3. Merge
     const mergedOffers = [...dbOffers, ...amazonOffers];
 
     res.json(mergedOffers);

@@ -19,7 +19,6 @@ export const sendFeedback = async (req, res) => {
     });
     await feedback.save();
 
-    // ✅ Send admin alert
     await sendFeedbackEmail({ feedbackType, feedbackText, category, userEmail, blogId });
 
     // ✅ Send auto-reply to user

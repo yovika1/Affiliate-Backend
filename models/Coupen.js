@@ -7,7 +7,7 @@ const offerSchema = new mongoose.Schema({
   affiliateUrl: { type: String, required: true, trim: true }, 
   category: {
     type: String,
-    enum: ["fashion", "beauty", "cosmetics", "general"],
+    enum: ["fashion", " ", "cosmetics", "general"],
     required: true,
     default: "general",
   },

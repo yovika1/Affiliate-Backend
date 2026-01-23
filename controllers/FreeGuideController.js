@@ -14,7 +14,7 @@ export const createGuide = async (req, res) => {
 // Get all guidances
 export const getGuide = async (req, res) => {
   try {
-    const guidances = await FreeGuidance.find().sort({ createdAt: -1 });
+    const guidances = await FreeGuidance.find().sort({ createdAt: 1 });
     res.status(200).json(guidances);
   } catch (error) {
     res.status(500).json({ message: "Error fetching guidances", error: error.message });

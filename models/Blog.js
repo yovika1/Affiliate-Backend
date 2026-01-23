@@ -20,7 +20,7 @@ const blogSchema = new mongoose.Schema(
 
     details: [ 
       {
-        name: { type: String, required: true },
+        name: { type: String },
         value: { type: String },
        
       },

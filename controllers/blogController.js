@@ -8,6 +8,7 @@ export const createProduct = async (req, res) => {
       productUrl,
       affiliateUrl,
       category,
+      specialDay,
       details,
       productTitle,
       product,
@@ -55,6 +56,7 @@ export const createProduct = async (req, res) => {
       productTitle,
       category,
       details,
+      specialDay:specialDay|| null,
       product: newProduct._id,
     });
 

@@ -18,6 +18,11 @@ const blogSchema = new mongoose.Schema(
       ref: "Product",
     },
 
+    specialDay: {
+    type: String,
+    default: null,
+  },
+
     details: [ 
       {
         name: { type: String },

@@ -97,7 +97,7 @@ export const fetchProduct = async (req, res) => {
 // GET ALL BLOGS
 export const getBlogs = async (req, res) => {
   try {
-    const blogs = await Blog.find().populate("product");
+    const blogs = await Blog.find().sort({ createdAt: -1 }).populate("product");
     res.json({ blogs });
   } catch (error) {
     res.status(500).json({ message: error.message });

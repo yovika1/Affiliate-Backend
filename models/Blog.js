@@ -30,6 +30,7 @@ const blogSchema = new mongoose.Schema(
        
       },
     ],
+
   },
   { timestamps: true }
 );

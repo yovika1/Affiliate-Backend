@@ -13,15 +13,20 @@ const blogSchema = new mongoose.Schema(
       required: true,
       default: "general",
     },
+      subCategory: {
+    type: String,
+    required: true
+  },
     product: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Product",
     },
 
-    specialDay: {
-    type: String,
-    default: null,
-  },
+  badge: { type: String, 
+    enum:["Trending","Best Seller","New Arrival"],
+    required:true,
+    default: "Trending" },
+
 
     details: [ 
       {
@@ -30,7 +35,8 @@ const blogSchema = new mongoose.Schema(
        
       },
     ],
-
+lastPriceUpdated: { type: Date }
+    
   },
   { timestamps: true }
 );

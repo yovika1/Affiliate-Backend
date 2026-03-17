@@ -8,80 +8,137 @@ export const createProduct = async (req, res) => {
       productUrl,
       affiliateUrl,
       category,
-      specialDay,
+      subCategory,
       details,
       productTitle,
       product,
+      badge
     } = req.body;
 
+  
+    if (!affiliateUrl || !category) {
+      return res.status(400).json({
+        success: false,
+        message: "productUrl, affiliateUrl and category are required",
+      });
+    }
+
+   
+    const existingProduct = await Product.findOne({ productUrl });
+
+    if (existingProduct) {
+      return res.status(400).json({
+        success: false,
+        message: "Product already exists",
+      });
+    }
+
     let fetchedData = {};
-    if (productUrl) {
-      fetchedData = await fetchProductPrice(productUrl);
-      if (!fetchedData) {
-        return res.status(400).json({
-          success: false,
-          message: "Unable to fetch product details.",
-        });
+
+    try {
+      if (productUrl) {
+        fetchedData = await fetchProductPrice(productUrl);
       }
+    } catch (err) {
+      console.log("Scraping failed, using manual data if provided");
     }
 
     let detectedPlatform = "unknown";
 
-    if (productUrl?.includes("flipkart.com")) detectedPlatform = "flipkart";
-    else if (productUrl?.includes("amazon")) detectedPlatform = "amazon";
-    // else if (productUrl?.includes("meesho")) detectedPlatform = "meesho";
-    else if (productUrl?.includes("mamaearth")) detectedPlatform = "mamaearth";
+    if (productUrl.includes("flipkart.com")) detectedPlatform = "flipkart";
+    else if (productUrl.includes("amazon")) detectedPlatform = "amazon";
+    else if (productUrl.includes("mamaearth")) detectedPlatform = "mamaearth";
+    else if (productUrl.includes("ajio")) detectedPlatform = "ajio";
+    else if (productUrl.includes("myntra")) detectedPlatform = "myntra";
+
+ 
+    const currentPrice =
+      product?.currentPrice ?? fetchedData?.currentPrice ?? null;
+
+    const originalPrice =
+      product?.originalPrice ?? fetchedData?.originalPrice ?? null;
+
+    /* Auto Discount Calculate */
+    let discountPercent =
+      product?.discountPercent ?? fetchedData?.discountPercent ?? null;
+
+    if (  
+      !discountPercent &&
+      originalPrice &&
+      currentPrice &&
+      originalPrice > currentPrice
+    ) {
+      discountPercent = Math.round(
+        ((originalPrice - currentPrice) / originalPrice) * 100
+      );
+    }
 
     const productData = {
-      productName: product?.productName || fetchedData.productName,
+      productName:
+        product?.productName || fetchedData?.productName || "Untitled Product",
 
       imageUrl:
         product?.imageUrl ||
-        (Array.isArray(fetchedData.imageUrl)
+        (Array.isArray(fetchedData?.imageUrl)
           ? fetchedData.imageUrl[0]
-          : fetchedData.imageUrl),
-
-      currentPrice: product?.currentPrice || fetchedData.currentPrice,
-      originalPrice: product?.originalPrice || fetchedData.originalPrice,
+          : fetchedData?.imageUrl) ||
+        "",
 
       productUrl,
       affiliateUrl,
 
-      platform: product?.platform || fetchedData.platform || detectedPlatform,
+      currentPrice,
+      originalPrice,
+      discountPercent,
+
+      rating: product?.rating ?? fetchedData?.rating ?? null,
+      reviewsCount:
+        product?.reviewsCount ?? fetchedData?.reviewsCount ?? null,
+
+      platform:
+        product?.platform || fetchedData?.platform || detectedPlatform,
     };
 
+   
     const newProduct = await Product.create(productData);
 
+ 
     const blog = await Blog.create({
-      productTitle,
+      productTitle: productTitle || productData.productName,
       category,
-      details,
-      specialDay:specialDay|| null,
+      subCategory, 
+      badge,
+      details: details || [],
       product: newProduct._id,
     });
 
     const populatedBlog = await Blog.findById(blog._id).populate("product");
 
-    res.status(201).json({
+  
+    return res.status(201).json({
       success: true,
       message: "Blog created successfully!",
       blog: populatedBlog,
     });
   } catch (error) {
     console.error("❌ Error creating blog:", error);
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({
+      success: false,
+      message: "Server Error",
+      error: error.message,
+    });
   }
 };
-
 
 // FETCH PRODUCT (auto scrape)
 
 export const fetchProduct = async (req, res) => {
+   console.log("🔥 SCRAPER STARTED");
+
   try {
     const { url } = req.body;
 
     const product = await fetchProductPrice(url);
-
     if (!product || !product.productName) {
       return res.status(400).json({ error: "Failed to fetch product details" });
     }

@@ -22,7 +22,10 @@ export async function updateAllProductPrices() {
 
       product.currentPrice = data.currentPrice;
       product.originalPrice = data.originalPrice;
-      product.discount = data.discount;
+    product.discountPercent = data.discountPercent;
+product.rating = data.rating;
+product.reviewsCount = data.reviewsCount;
+product.lastPriceUpdated = new Date();
      
 
       await product.save();

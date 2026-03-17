@@ -3,7 +3,8 @@ import { createProduct, deleteBlog, fetchProduct, getBlogById, getBlogs, updateB
 
 const blogRoutes = express.Router()
 
-blogRoutes.post('/fetch-product', fetchProduct);  // for auto-fetch
+blogRoutes.post('/fetch-product', fetchProduct);
+  // for auto-fetch
 blogRoutes.get('/getBlogs',getBlogs)
 // Single blog by ID
 blogRoutes.get('/getBlogs/:id',getBlogById)

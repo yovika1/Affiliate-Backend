@@ -10,6 +10,7 @@ import FeedbackRouter from "./routes/FeedbackRoutes.js";
 import GuidanceRouter from "./routes/GuideRoutes.js";
 import testimonialRouter from "./routes/TestimonialsRoutes.js";
 import './Utils/PriceUpdater.js'
+import aiRouter from "./routes/aiChat.js";
 
 const app = express()
 
@@ -24,8 +25,7 @@ app.use(coupenRoutes)
 app.use(FeedbackRouter)
 app.use(GuidanceRouter)
 app.use(testimonialRouter)
-
-// app.use(router)
+app.use("/ai",aiRouter)
 
 connectDB()
 .then(() => {

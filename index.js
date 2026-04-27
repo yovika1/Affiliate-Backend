@@ -1,20 +1,20 @@
 import express from "express";
-dotenv.config();
 import dotenv from "dotenv"
+dotenv.config();
 import cors from "cors";
 import connectDB from "./dbConnection/Connection.js";
 import blogRoutes from "./routes/blogRoutes.js";
-// import router from "./routes/dashboardRoutes.js";
 import coupenRoutes from "./routes/coupenRoutes.js";
 import FeedbackRouter from "./routes/FeedbackRoutes.js";
 import GuidanceRouter from "./routes/GuideRoutes.js";
 import testimonialRouter from "./routes/TestimonialsRoutes.js";
-import './Utils/PriceUpdater.js'
+import "./utils/PriceUpdater.js";
 import aiRouter from "./routes/aiChat.js";
+import { initRedis } from "./utils/redisClient.js";
 
 const app = express()
 
-app.use(express.json());
+app.use(express.json({ limit: "32kb" }));
 app.use(cors({origin: "*",
    methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true
@@ -28,7 +28,8 @@ app.use(testimonialRouter)
 app.use("/ai",aiRouter)
 
 connectDB()
-.then(() => {
+.then(async () => {
+  await initRedis();
   app.listen(process.env.PORT || 8000, () => {
     console.log(`Server running at::${process.env.PORT}`);
   });

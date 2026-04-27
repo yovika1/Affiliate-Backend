@@ -1,8 +1,10 @@
 import express from "express";
-import { chatWithAI } from "../controllers/aiController.js";
+import { chatHandler } from "../controllers/chatController.js";
+import { aiRateLimit } from "../middleware/aiRateLimit.js";
+import { aiInputGuard } from "../middleware/aiInputGuard.js";
 
 const aiRouter = express.Router();
 
-aiRouter.post("/chat", chatWithAI);
+aiRouter.post("/chat", aiRateLimit, aiInputGuard, chatHandler);
 
 export default aiRouter;

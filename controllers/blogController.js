@@ -1,6 +1,8 @@
 import Blog from "../models/Blog.js";
 import Product from "../models/Product.js";
-import { fetchProductPrice } from "../Utils/fetchProductPrice.js";
+import { fetchProductPrice } from "../utils/fetchProductPrice.js";
+import { generateEmbedding } from "../services/intentService.js";
+import { buildProductSearchText, normalizeText } from "../utils/searchHelpers.js";
 
 export const createProduct = async (req, res) => {
   try {
@@ -45,11 +47,11 @@ export const createProduct = async (req, res) => {
 
     let detectedPlatform = "unknown";
 
-    if (productUrl.includes("flipkart.com")) detectedPlatform = "flipkart";
-    else if (productUrl.includes("amazon")) detectedPlatform = "amazon";
-    else if (productUrl.includes("mamaearth")) detectedPlatform = "mamaearth";
-    else if (productUrl.includes("ajio")) detectedPlatform = "ajio";
-    else if (productUrl.includes("myntra")) detectedPlatform = "myntra";
+    if (productUrl?.includes("flipkart.com")) detectedPlatform = "flipkart";
+    else if (productUrl?.includes("amazon")) detectedPlatform = "amazon";
+    else if (productUrl?.includes("mamaearth")) detectedPlatform = "mamaearth";
+    else if (productUrl?.includes("ajio")) detectedPlatform = "ajio";
+    else if (productUrl?.includes("myntra")) detectedPlatform = "myntra";
 
  
     const currentPrice =
@@ -95,9 +97,17 @@ export const createProduct = async (req, res) => {
       reviewsCount:
         product?.reviewsCount ?? fetchedData?.reviewsCount ?? null,
 
+      category,
+      brand: normalizeText(product?.brand || fetchedData?.brand || "unknown"),
+      gender: product?.gender ?? fetchedData?.gender ?? undefined,
+      useCase: product?.useCase ?? "casual",
+      tags: Array.isArray(product?.tags) ? product.tags.map(normalizeText) : [],
       platform:
         product?.platform || fetchedData?.platform || detectedPlatform,
     };
+
+    productData.searchableText = buildProductSearchText(productData);
+    productData.embedding = await generateEmbedding(productData.searchableText);
 
    
     const newProduct = await Product.create(productData);
@@ -182,9 +192,20 @@ export const updateBlog = async (req, res) => {
     if (!blog) return res.status(404).json({ message: "Blog not found" });
 
     if (product && blog.product?._id) {
+      const nextProduct = {
+        ...product,
+        brand: product.brand ? normalizeText(product.brand) : blog.product.brand,
+        searchableText: buildProductSearchText({
+          ...blog.product.toObject(),
+          ...product,
+          brand: product.brand ? normalizeText(product.brand) : blog.product.brand,
+        }),
+      };
+
+      nextProduct.embedding = await generateEmbedding(nextProduct.searchableText);
       await Product.findByIdAndUpdate(
         blog.product._id,
-        { ...product, lastUpdated: new Date() },
+        { ...nextProduct, lastUpdated: new Date() },
         { new: true }
       );
     }

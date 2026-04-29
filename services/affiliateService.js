@@ -1,5 +1,5 @@
 import axios from "axios";
-import { getCache, setCache } from "../utils/redisClient.js";
+import { getCache, setCache } from "../Utils/redisClient.js";
 
 const APPROVED = process.env.CUELINKS_APPROVED === "true";
 const CUELINKS_API = process.env.CUELINKS_API;

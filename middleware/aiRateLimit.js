@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { getCache, setCache } from "../utils/redisClient.js";
+import { getCache, setCache } from "../Utils/redisClient.js";
 
 const WINDOW_SECONDS = Number(process.env.AI_RATE_LIMIT_WINDOW_SEC || 60);
 const MAX_REQUESTS = Number(process.env.AI_RATE_LIMIT_MAX || 20);

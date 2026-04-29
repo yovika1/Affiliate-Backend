@@ -3,7 +3,7 @@ import express from "express";
 import mongoose from "mongoose";
 import aiRouter from "../routes/aiChat.js";
 import connectDB from "../dbConnection/Connection.js";
-import { initRedis } from "../utils/redisClient.js";
+import { initRedis } from "../Utils/redisClient.js";
 
 dotenv.config();
 

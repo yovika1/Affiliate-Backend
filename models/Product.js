@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { buildProductSearchText, normalizeText } from "../utils/searchHelpers.js";
+import { buildProductSearchText, normalizeText } from "../Utils/searchHelpers.js";
 
 const productSchema = new mongoose.Schema(
   {

@@ -5,7 +5,7 @@ import {
   inferUseCaseFromText,
   normalizeIntent,
   normalizeText,
-} from "../utils/searchHelpers.js";
+} from "../Utils/searchHelpers.js";
 
 const GEMINI_MODEL = "gemini-2.5-flash";
 const EMBEDDING_MODEL = "embedding-001";

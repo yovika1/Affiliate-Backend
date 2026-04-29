@@ -14,14 +14,14 @@ import {
   getSessionHistory,
   saveSessionHistory,
 } from "../services/chatMemory.js";
-import { getCache, setCache } from "../utils/redisClient.js";
+import { getCache, setCache } from "../Utils/redisClient.js";
 import {
   getIntentCacheKey,
   getSearchCacheKey,
   isNonEmptyArray,
   normalizeIntent,
   normalizeText,
-} from "../utils/searchHelpers.js";
+} from "../Utils/searchHelpers.js";
 
 const MAX_HISTORY = 10;
 const MAX_MESSAGE_LENGTH = 500;

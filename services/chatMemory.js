@@ -1,5 +1,5 @@
 import Chat from "../models/Chat.js";
-import { getCache, setCache } from "../utils/redisClient.js";
+import { getCache, setCache } from "../Utils/redisClient.js";
 
 export const getSessionHistory = async (sessionId) => {
   const key = `chat:${sessionId}`;

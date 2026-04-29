@@ -8,9 +8,9 @@ import coupenRoutes from "./routes/coupenRoutes.js";
 import FeedbackRouter from "./routes/FeedbackRoutes.js";
 import GuidanceRouter from "./routes/GuideRoutes.js";
 import testimonialRouter from "./routes/TestimonialsRoutes.js";
-import "./utils/PriceUpdater.js";
+import "./Utils/PriceUpdater.js";
 import aiRouter from "./routes/aiChat.js";
-import { initRedis } from "./utils/redisClient.js";
+import { initRedis } from "./Utils/redisClient.js";
 
 const app = express()
 

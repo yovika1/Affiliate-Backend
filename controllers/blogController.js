@@ -1,8 +1,8 @@
 import Blog from "../models/Blog.js";
 import Product from "../models/Product.js";
-import { fetchProductPrice } from "../utils/fetchProductPrice.js";
+import { fetchProductPrice } from "../Utils/fetchProductPrice.js";
 import { generateEmbedding } from "../services/intentService.js";
-import { buildProductSearchText, normalizeText } from "../utils/searchHelpers.js";
+import { buildProductSearchText, normalizeText } from "../Utils/searchHelpers.js";
 
 export const createProduct = async (req, res) => {
   try {

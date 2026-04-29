@@ -1,6 +1,6 @@
 import Product from "../models/Product.js";
-import { buildProductSearchText, normalizeText } from "../utils/searchHelpers.js";
-import { detectCategory, isUnsupportedProduct } from "../utils/detectCategory.js";
+import { buildProductSearchText, normalizeText } from "../Utils/searchHelpers.js";
+import { detectCategory, isUnsupportedProduct } from "../Utils/detectCategory.js";
 
 const normalizeTags = (tags = []) =>
   Array.isArray(tags)

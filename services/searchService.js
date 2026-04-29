@@ -5,7 +5,7 @@ import {
   extractSearchKeywords,
   normalizeIntent,
   normalizeText,
-} from "../utils/searchHelpers.js";
+} from "../Utils/searchHelpers.js";
 
 const RESULT_LIMIT = 12;
 const CANDIDATE_LIMIT = 60;

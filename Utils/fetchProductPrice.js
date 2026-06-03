@@ -21,9 +21,6 @@ export const fetchProductPrice = async (url) => {
       },
       timeout: 15000,
     });
-    console.log("===== RAW HTML START =====");
-    console.log(data.substring(0, 1500));
-    console.log("===== RAW HTML END =====");
     const $ = cheerio.load(data);
 
     let productName = null;

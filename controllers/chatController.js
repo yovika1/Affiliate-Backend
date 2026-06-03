@@ -79,8 +79,6 @@ export const chatHandler = async (req, res) => {
       ? req.body.message.trim().slice(0, MAX_MESSAGE_LENGTH)
       : "";
 
-    console.log("[chat] Incoming", { sessionId, message: cleanMessage });
-
     if (!sessionId || !cleanMessage) {
       return res.status(400).json({
         error: "sessionId and message required",
@@ -93,7 +91,6 @@ export const chatHandler = async (req, res) => {
     history = history.slice(-MAX_HISTORY);
 
     if (isOutfitQuery(cleanMessage)) {
-      console.log("[chat] Outfit detected");
 
       const structure = await generateOutfitStructure(cleanMessage);
       const outfit = await fetchOutfitProducts(structure, cleanMessage);
@@ -136,11 +133,9 @@ export const chatHandler = async (req, res) => {
     intent = intent ? safeParse(intent) : null;
 
     if (!intent) {
-      console.log("[chat] Intent MISS");
       intent = await detectIntentAI(cleanMessage);
       await setCache(intentCacheKey, JSON.stringify(intent), CACHE_TTL.intent);
     } else {
-      console.log("[chat] Intent HIT");
     }
 
     intent = normalizeIntent(intent, cleanMessage);

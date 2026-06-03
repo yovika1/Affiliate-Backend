@@ -2,7 +2,10 @@ import Blog from "../models/Blog.js";
 import Product from "../models/Product.js";
 import { fetchProductPrice } from "../Utils/fetchProductPrice.js";
 import { generateEmbedding } from "../services/intentService.js";
-import { buildProductSearchText, normalizeText } from "../Utils/searchHelpers.js";
+import {
+  buildProductSearchText,
+  normalizeText,
+} from "../Utils/searchHelpers.js";
 
 export const createProduct = async (req, res) => {
   try {
@@ -11,22 +14,31 @@ export const createProduct = async (req, res) => {
       affiliateUrl,
       category,
       subCategory,
-      details,
       productTitle,
-      product,
-      badge
+      badge,
+
+      productName,
+      currentPrice,
+      originalPrice,
+      rating,
+      reviewsCount,
+      discountPercent,
     } = req.body;
 
-  
+    const details = req.body.details
+      ? JSON.parse(req.body.details)
+      : [];
+
     if (!affiliateUrl || !category) {
       return res.status(400).json({
         success: false,
-        message: "productUrl, affiliateUrl and category are required",
+        message: "affiliateUrl and category are required",
       });
     }
 
-   
-    const existingProduct = await Product.findOne({ productUrl });
+    const existingProduct = await Product.findOne({
+      productUrl,
+    });
 
     if (existingProduct) {
       return res.status(400).json({
@@ -42,97 +54,108 @@ export const createProduct = async (req, res) => {
         fetchedData = await fetchProductPrice(productUrl);
       }
     } catch (err) {
-      console.log("Scraping failed, using manual data if provided");
-    }
-
-    let detectedPlatform = "unknown";
-
-    if (productUrl?.includes("flipkart.com")) detectedPlatform = "flipkart";
-    else if (productUrl?.includes("amazon")) detectedPlatform = "amazon";
-    else if (productUrl?.includes("mamaearth")) detectedPlatform = "mamaearth";
-    else if (productUrl?.includes("ajio")) detectedPlatform = "ajio";
-    else if (productUrl?.includes("myntra")) detectedPlatform = "myntra";
-
- 
-    const currentPrice =
-      product?.currentPrice ?? fetchedData?.currentPrice ?? null;
-
-    const originalPrice =
-      product?.originalPrice ?? fetchedData?.originalPrice ?? null;
-
-    /* Auto Discount Calculate */
-    let discountPercent =
-      product?.discountPercent ?? fetchedData?.discountPercent ?? null;
-
-    if (  
-      !discountPercent &&
-      originalPrice &&
-      currentPrice &&
-      originalPrice > currentPrice
-    ) {
-      discountPercent = Math.round(
-        ((originalPrice - currentPrice) / originalPrice) * 100
+      console.log(
+        "Scraping failed, using manual data"
       );
     }
 
+    const imageUrl = req.file
+      ? `/uploads/${req.file.filename}`
+      : (
+          Array.isArray(fetchedData?.imageUrl)
+            ? fetchedData.imageUrl[0]
+            : fetchedData?.imageUrl
+        ) || "";
+
+    let detectedPlatform = "unknown";
+
+    if (productUrl?.includes("flipkart"))
+      detectedPlatform = "flipkart";
+    else if (productUrl?.includes("amazon"))
+      detectedPlatform = "amazon";
+    else if (productUrl?.includes("myntra"))
+      detectedPlatform = "myntra";
+    else if (productUrl?.includes("ajio"))
+      detectedPlatform = "ajio";
+
     const productData = {
       productName:
-        product?.productName || fetchedData?.productName || "Untitled Product",
+        productName ||
+        fetchedData?.productName ||
+        "Untitled Product",
 
-      imageUrl:
-        product?.imageUrl ||
-        (Array.isArray(fetchedData?.imageUrl)
-          ? fetchedData.imageUrl[0]
-          : fetchedData?.imageUrl) ||
-        "",
+      imageUrl,
 
       productUrl,
       affiliateUrl,
 
-      currentPrice,
-      originalPrice,
-      discountPercent,
+      currentPrice:
+        Number(currentPrice) ||
+        fetchedData?.currentPrice,
 
-      rating: product?.rating ?? fetchedData?.rating ?? null,
+      originalPrice:
+        Number(originalPrice) ||
+        fetchedData?.originalPrice,
+
+      discountPercent:
+        Number(discountPercent) ||
+        fetchedData?.discountPercent,
+
+      rating:
+        Number(rating) ||
+        fetchedData?.rating,
+
       reviewsCount:
-        product?.reviewsCount ?? fetchedData?.reviewsCount ?? null,
+        Number(reviewsCount) ||
+        fetchedData?.reviewsCount,
 
       category,
-      brand: normalizeText(product?.brand || fetchedData?.brand || "unknown"),
-      gender: product?.gender ?? fetchedData?.gender ?? undefined,
-      useCase: product?.useCase ?? "casual",
-      tags: Array.isArray(product?.tags) ? product.tags.map(normalizeText) : [],
-      platform:
-        product?.platform || fetchedData?.platform || detectedPlatform,
+
+      brand: normalizeText(
+        fetchedData?.brand || "unknown"
+      ),
+
+      platform: detectedPlatform,
     };
 
-    productData.searchableText = buildProductSearchText(productData);
-    productData.embedding = await generateEmbedding(productData.searchableText);
+    productData.searchableText =
+      buildProductSearchText(productData);
 
-   
-    const newProduct = await Product.create(productData);
+    productData.embedding =
+      await generateEmbedding(
+        productData.searchableText
+      );
 
- 
+    const newProduct =
+      await Product.create(productData);
+
     const blog = await Blog.create({
-      productTitle: productTitle || productData.productName,
+      productTitle:
+        productTitle ||
+        productData.productName,
+
       category,
-      subCategory, 
+      subCategory,
       badge,
-      details: details || [],
+      details,
+
       product: newProduct._id,
     });
 
-    const populatedBlog = await Blog.findById(blog._id).populate("product");
+    const populatedBlog =
+      await Blog.findById(blog._id)
+        .populate("product");
 
-  
-    return res.status(201).json({
+    res.status(201).json({
       success: true,
-      message: "Blog created successfully!",
+      message:
+        "Blog created successfully",
       blog: populatedBlog,
     });
   } catch (error) {
-    console.error("❌ Error creating blog:", error);
-    return res.status(500).json({
+    console.error(error);
+
+    res.status(500).json({
       success: false,
       message: "Server Error",
       error: error.message,
@@ -143,7 +166,6 @@ export const createProduct = async (req, res) => {
 // FETCH PRODUCT (auto scrape)
 
 export const fetchProduct = async (req, res) => {
-   console.log("🔥 SCRAPER STARTED");
 
   try {
     const { url } = req.body;
@@ -159,7 +181,6 @@ export const fetchProduct = async (req, res) => {
     return res.status(500).json({ error: "Server error" });
   }
 };
-
 
 // GET ALL BLOGS
 export const getBlogs = async (req, res) => {
@@ -186,33 +207,52 @@ export const getBlogById = async (req, res) => {
 export const updateBlog = async (req, res) => {
   try {
     const { id } = req.params;
-    const { product, ...blogData } = req.body;
 
     const blog = await Blog.findById(id).populate("product");
     if (!blog) return res.status(404).json({ message: "Blog not found" });
 
+     const product = req.body.product
+      ? JSON.parse(req.body.product)
+      : null;
+
+    const blogData = req.body;
+
     if (product && blog.product?._id) {
       const nextProduct = {
         ...product,
-        brand: product.brand ? normalizeText(product.brand) : blog.product.brand,
-        searchableText: buildProductSearchText({
-          ...blog.product.toObject(),
-          ...product,
-          brand: product.brand ? normalizeText(product.brand) : blog.product.brand,
-        }),
-      };
 
-      nextProduct.embedding = await generateEmbedding(nextProduct.searchableText);
+         imageUrl: req.file
+          ? `/uploads/${req.file.filename}`
+          : blog.product.imageUrl,
+
+        brand: product.brand
+          ? normalizeText(product.brand)
+          : blog.product.brand,
+      }
+
+      nextProduct.searchableText = buildProductSearchText({
+        ...blog.product.toObject(),
+        ...product,
+        brand: product.brand
+          ? normalizeText(product.brand)
+          : blog.product.brand,
+      });
+
+      nextProduct.embedding = await generateEmbedding(
+        nextProduct.searchableText,
+      );
       await Product.findByIdAndUpdate(
         blog.product._id,
         { ...nextProduct, lastUpdated: new Date() },
-        { new: true }
+        { new: true },
       );
     }
 
     blog.productTitle = blogData.productTitle || blog.productTitle;
-    blog.details = blogData.details || blog.details;
     blog.category = blogData.category || blog.category;
+    blog.details = blogData.details 
+      ? JSON.parse(blogData.details)
+      : blog.details;
     blog.updatedAt = new Date();
 
     await blog.save();

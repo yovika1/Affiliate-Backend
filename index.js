@@ -1,6 +1,7 @@
 import express from "express";
 import dotenv from "dotenv"
 dotenv.config();
+import path from "path";
 import cors from "cors";
 import connectDB from "./dbConnection/Connection.js";
 import blogRoutes from "./routes/blogRoutes.js";
@@ -13,7 +14,10 @@ import aiRouter from "./routes/aiChat.js";
 import { initRedis } from "./Utils/redisClient.js";
 
 const app = express()
-
+app.use(
+  "/uploads",
+  express.static(path.join(process.cwd(), "uploads"))
+);
 app.use(express.json({ limit: "32kb" }));
 app.use(cors({origin: "*",
    methods: ["GET", "POST", "PUT", "DELETE"],

@@ -58,7 +58,6 @@ export const getAllTestimonials = async (req, res) => {
 
 export const approveTestimonial = async (req, res) => {
   try {
-    console.log("✅ Approve request received for ID:", req.params.id);
     await Testimonials.findByIdAndUpdate(req.params.id, { approved: true });
     res.json({ success: true, message: "Comment approved ✅" });
   } catch (error) {

@@ -34,7 +34,7 @@ export const sendFeedback = async (req, res) => {
 // Fetch all feedback (for admin panel)
 export const getAllFeedback = async (req, res) => {
   try {
-    const feedbacks = await Feedback.find().sort({ createdAt: -1 }); // latest first
+    const feedbacks = await Feedback.find().sort({ createdAt: -1 }); 
     res.status(200).json(feedbacks);
   } catch (err) {
     console.error("Error fetching feedback:", err.message);

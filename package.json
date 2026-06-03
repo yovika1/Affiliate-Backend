@@ -7,9 +7,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon index.js",
-    "update:products":"node scripts/updateProducts.js",
-    "sync:indexes":"node scripts/syncIndexes.js",
-    "test:ai":"node scripts/testAiChat.js"
+    "update:products": "node scripts/updateProducts.js",
+    "sync:indexes": "node scripts/syncIndexes.js",
+    "test:ai": "node scripts/testAiChat.js"
   },
   "keywords": [
     "[\"affiliate\"",
@@ -29,6 +29,7 @@
     "got-scraping": "^4.1.2",
     "ioredis": "^5.10.1",
     "mongoose": "^8.17.0",
+    "multer": "^2.1.1",
     "node-cron": "^4.2.1",
     "nodemailer": "^7.0.6",
     "openai": "^6.27.0",

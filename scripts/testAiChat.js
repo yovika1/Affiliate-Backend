@@ -94,7 +94,6 @@ const run = async () => {
     });
 
     await mongoose.connection.close();
-    console.log("\n[ai-test] completed");
     process.exit(0);
   } catch (error) {
     console.error("[ai-test] failed:", error.message);

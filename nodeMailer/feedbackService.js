@@ -51,7 +51,6 @@ export const sendFeedbackEmail = async (feedbackData) => {
       replyTo: userEmail || undefined, 
     });
 
-    console.log("✅ Feedback email sent successfully to admin");
   } catch (err) {
     console.error("❌ Error sending feedback email:", err.message);
   }
@@ -64,8 +63,6 @@ export const sendReplyToUser = async (userEmail, replyMessage) => {
       console.error("❌ No user email provided for reply");
       return;
     }
-
-    console.log("📩 Attempting to send reply to:", userEmail);
 
     await transporter.sendMail({
       from: `"Blog Support" <${process.env.EMAIL_ADMIN}>`,
@@ -83,7 +80,6 @@ export const sendReplyToUser = async (userEmail, replyMessage) => {
       `,
     });
 
-    console.log("✅ Reply email sent to user:", userEmail);
   } catch (err) {
     console.error("❌ Error sending reply to user:", err.message);
     throw new Error("Email not sent");

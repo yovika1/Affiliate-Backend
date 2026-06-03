@@ -69,10 +69,8 @@ export const updateProducts = async () => {
       );
 
       updated += 1;
-      console.log("[products] Refreshed:", product.productName);
     }
 
-    console.log("[products] Update complete", { updated, skipped, total: products.length });
   } catch (err) {
     console.error("[products] Update error:", err.message);
   }

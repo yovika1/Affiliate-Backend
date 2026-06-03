@@ -7,10 +7,8 @@ dotenv.config();
 const run = async () => {
   try {
     await mongoose.connect(process.env.MONGODB_URL);
-    console.log("[indexes] MongoDB connected");
 
     const indexes = await Product.syncIndexes();
-    console.log("[indexes] Product indexes synced", indexes);
 
     process.exit(0);
   } catch (error) {

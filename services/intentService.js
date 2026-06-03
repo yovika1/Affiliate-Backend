@@ -8,7 +8,7 @@ import {
 } from "../Utils/searchHelpers.js";
 
 const GEMINI_MODEL = "gemini-2.5-flash";
-const EMBEDDING_MODEL = "embedding-001";
+const EMBEDDING_MODEL = process.env.GEMINI_EMBEDDING_MODEL || "gemini-embedding-001";
 const TRANSIENT_ERROR_DELAY_MS = 1200;
 const AI_COOLDOWN_MS = 60 * 1000;
 
@@ -29,6 +29,9 @@ const disableAiTemporarily = (ms = AI_COOLDOWN_MS) => {
 const isQuotaOrAvailabilityError = (error) => {
   const message = String(error?.message || "").toLowerCase();
   return (
+    message.includes("404") ||
+    message.includes("not found") ||
+    message.includes("not supported") ||
     message.includes("429") ||
     message.includes("quota") ||
     message.includes("rate limit") ||
@@ -188,12 +191,10 @@ Rules:
 - searchQuery should be short helpful keywords
 `;
 
-  console.log("[intent] Detecting intent with AI", { query });
   const text = await generateText(prompt, { label: "intent" });
 
   if (!text) return fallbackIntent;
 
-  console.log("[intent] Raw AI response", text);
   const parsed = extractJSON(text);
   return normalizeIntent(parsed || fallbackIntent, query);
 };
@@ -201,10 +202,8 @@ Rules:
 export const generateEmbedding = async (text) => {
   try {
     const cleanedText = normalizeText(text);
-    console.log("[embedding] Generating embedding", { text: cleanedText });
 
     if (!cleanedText) {
-      console.log("[embedding] Empty text");
       return [];
     }
 
@@ -219,11 +218,9 @@ export const generateEmbedding = async (text) => {
 
     const vector = result?.embedding?.values || [];
     if (!vector.length) {
-      console.log("[embedding] Empty vector returned");
       return [];
     }
 
-    console.log("[embedding] Success", { dimensions: vector.length });
     return vector;
   } catch (err) {
     if (isQuotaOrAvailabilityError(err)) {

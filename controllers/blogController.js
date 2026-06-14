@@ -61,7 +61,8 @@ export const createProduct = async (req, res) => {
 
     const imageUrl = req.file
       ? `/uploads/${req.file.filename}`
-      : (
+      : req.body.imageUrl ||
+      (
           Array.isArray(fetchedData?.imageUrl)
             ? fetchedData.imageUrl[0]
             : fetchedData?.imageUrl
@@ -223,7 +224,8 @@ export const updateBlog = async (req, res) => {
 
          imageUrl: req.file
           ? `/uploads/${req.file.filename}`
-          : blog.product.imageUrl,
+          :  product.imageUrl ||
+          blog.product.imageUrl,
 
         brand: product.brand
           ? normalizeText(product.brand)

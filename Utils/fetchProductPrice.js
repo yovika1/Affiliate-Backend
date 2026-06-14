@@ -2,7 +2,6 @@ import axios from "axios";
 import * as cheerio from "cheerio";
 
 export const fetchProductPrice = async (url) => {
-    console.log("🔥 FUNCTION CALLED WITH URL:", url);
 
   try {
     // 👉 Force mobile version (more stable HTML)
@@ -64,7 +63,6 @@ export const fetchProductPrice = async (url) => {
     // 2️⃣ FLIPKART SPECIFIC EXTRACTION
     // -----------------------------------
     if (url.includes("flipkart.com")) {
-      // Try __INITIAL_STATE__ (most powerful)
       const stateMatch = data.match(
         /window\.__INITIAL_STATE__\s*=\s*({.*?});/
       );

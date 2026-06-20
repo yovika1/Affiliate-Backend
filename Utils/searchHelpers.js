@@ -1,18 +1,42 @@
 const ALLOWED_CATEGORIES = [
-  "tshirt",
-  "shirt",
+  "fashion",
+  "beauty",
+  "general",
+];
+
+const ALLOWED_SUBCATEGORIES = [
+  "dresses",
   "jeans",
-  "dress",
+  "shirt",
+  "tshirt",
+  "kurta",
+  "makeup",
+  "skincare",
+  "perfume",
+  "haircare",
 ];
 
 const ALLOWED_GENDERS = ["men", "women"];
-const ALLOWED_USE_CASES = ["casual", "formal", "gym", "party", "college"];
+
+const ALLOWED_USE_CASES = [
+  "casual",
+  "formal",
+  "gym",
+  "party",
+  "college",
+  "office",
+  "travel",
+  "wedding",
+];
 
 const CATEGORY_ALIASES = {
   tshirt: ["tshirt", "t-shirt", "tee", "tees"],
   shirt: ["shirt", "shirts", "polo"],
   jeans: ["jeans", "jean", "denim", "denims"],
-  dress: ["dress", "dresses", "gown", "gowns"],
+  dresses: ["dresses", "dresses", "gown", "gowns"],
+  skincare: ["skincare", "face wash", "serum", "moisturizer"],
+makeup: ["makeup", "lipstick", "foundation", "concealer"],
+perfume: ["perfume", "fragrance", "deo"],
 };
 
 const USE_CASE_KEYWORDS = {
@@ -25,7 +49,16 @@ const USE_CASE_KEYWORDS = {
 
 const GENDER_KEYWORDS = {
   men: ["men", "male", "boy", "boys", "man", "mens"],
-  women: ["women", "female", "girl", "girls", "woman", "womens", "ladies", "lady"],
+  women: [
+    "women",
+    "female",
+    "girl",
+    "girls",
+    "woman",
+    "womens",
+    "ladies",
+    "lady",
+  ],
 };
 
 const STOP_WORDS = new Set([
@@ -59,10 +92,18 @@ const STOP_WORDS = new Set([
 
 const CATEGORY_PRIORITY_TERMS = {
   tshirt: ["tshirt", "t shirt", "tee", "tees", "crew neck", "oversized"],
-  shirt: ["shirt", "shirts", "polo", "button down", "formal shirt", "casual shirt"],
+  shirt: [
+    "shirt",
+    "shirts",
+    "polo",
+    "button down",
+    "formal shirt",
+    "casual shirt",
+  ],
   jeans: ["jeans", "jean", "denim", "slim fit", "straight fit"],
-  dress: ["dress", "dresses", "gown", "maxi", "midi"],
+  dresses: ["dresses", "dresses", "gown", "maxi", "midi"],
 };
+
 
 export const normalizeText = (value = "") =>
   String(value)
@@ -148,11 +189,20 @@ export const getCategoryKeywords = (category = "") =>
 export const expandSearchTerms = (intent = {}, query = "") => {
   const queryKeywords = extractSearchKeywords(query, 10);
   const categoryKeywords = getCategoryKeywords(intent.category);
-  const useCaseKeywords = intent.useCase ? USE_CASE_KEYWORDS[intent.useCase] || [] : [];
-  const genderKeywords = intent.gender ? GENDER_KEYWORDS[intent.gender] || [] : [];
+  const useCaseKeywords = intent.useCase
+    ? USE_CASE_KEYWORDS[intent.useCase] || []
+    : [];
+  const genderKeywords = intent.gender
+    ? GENDER_KEYWORDS[intent.gender] || []
+    : [];
   const brandKeywords =
     intent.brand && intent.brand !== "unknown" ? [intent.brand] : [];
 
+      const styleKeywords =
+    intent.style &&
+    STYLE_SYNONYMS[intent.style]
+      ? STYLE_SYNONYMS[intent.style]
+      : [];
   return [
     ...new Set(
       [
@@ -161,6 +211,8 @@ export const expandSearchTerms = (intent = {}, query = "") => {
         ...categoryKeywords,
         ...useCaseKeywords,
         ...genderKeywords,
+       ...styleKeywords, 
+
       ]
         .map((term) => normalizeText(term))
         .filter(Boolean),
@@ -172,9 +224,13 @@ export const buildProductSearchText = (product = {}) => {
   const parts = [
     product.productName,
     product.category,
+    product.subCategory,
     product.brand,
     product.platform,
     product.gender,
+    product.style,
+    product.color,
+    product.pattern,
     product.useCase,
     ...(Array.isArray(product.tags) ? product.tags : []),
   ];
@@ -182,16 +238,87 @@ export const buildProductSearchText = (product = {}) => {
   return normalizeText(parts.filter(Boolean).join(" "));
 };
 
+export const inferStyleFromText = (text = "") => {
+  const t = normalizeText(text);
+
+  if (t.includes("oversized")) return "oversized";
+  if (t.includes("korean")) return "korean";
+  if (t.includes("old money")) return "old money";
+  if (t.includes("streetwear")) return "streetwear";
+  if (t.includes("minimal")) return "minimal";
+  if (t.includes("coquette")) return "coquette";
+  if (t.includes("y2k")) return "y2k";
+
+  return null;
+};
+export const STYLE_SYNONYMS = {
+  "old money": [
+    "rich",
+    "luxury",
+    "classy",
+    "elegant",
+  ],
+
+  streetwear: [
+    "urban",
+    "hype",
+    "baggy",
+  ],
+
+  oversized: [
+    "loose",
+    "baggy",
+  ],
+
+  korean: [
+    "k-style",
+    "korean fashion",
+  ],
+
+  minimal: [
+    "clean",
+    "simple",
+    "basic",
+  ],
+};
+
+
+
+export const inferPatternFromText = (text = "") => {
+  const t = normalizeText(text);
+
+  if (t.includes("solid")) return "solid";
+  if (t.includes("printed")) return "printed";
+  if (t.includes("graphic")) return "graphic";
+  if (t.includes("checked")) return "checked";
+  if (t.includes("striped")) return "striped";
+
+  return null;
+};
 export const normalizeIntent = (intent = {}, originalQuery = "") => {
   const normalizedQuery = normalizeText(originalQuery);
   const inferredCategory = inferCategoryFromText(
-    [intent.category, intent.searchQuery, intent.searchTerms, originalQuery].filter(Boolean).join(" "),
+    
+    [intent.category, intent.searchQuery, intent.searchTerms, originalQuery]
+      .filter(Boolean)
+      .join(" "),
   );
   const inferredUseCase = inferUseCaseFromText(
-    [intent.useCase, intent.searchQuery, originalQuery].filter(Boolean).join(" "),
+    [intent.useCase, intent.searchQuery, originalQuery]
+      .filter(Boolean)
+      .join(" "),
   );
   const inferredGender = inferGenderFromText(
-    [intent.gender, intent.searchQuery, originalQuery].filter(Boolean).join(" "),
+    [intent.gender, intent.searchQuery, originalQuery]
+      .filter(Boolean)
+      .join(" "),
+  );
+  const inferredStyle = inferStyleFromText(
+    [intent.style, intent.searchQuery, originalQuery].filter(Boolean).join(" "),
+  );
+
+  const inferredColor = inferColorFromText(
+    [intent.color, intent.searchQuery, originalQuery].filter(Boolean).join(" "),
   );
   const keywords = extractSearchKeywords(
     intent.searchQuery || intent.searchTerms || originalQuery,
@@ -214,18 +341,47 @@ export const normalizeIntent = (intent = {}, originalQuery = "") => {
       ? rawBudget
       : extractBudgetFromText(originalQuery);
 
-  const brand = normalizeText(intent.brand || "").replace(/\s+/g, " ").trim();
+  const brand = normalizeText(intent.brand || "")
+    .replace(/\s+/g, " ")
+    .trim();
 
   return {
     category: category || null,
+    subCategory: intent.subCategory || null,
     brand: brand && brand !== "unknown" ? brand : "unknown",
     budget: budget || null,
     gender: gender || null,
     useCase: useCase || null,
+   style: intent.style || inferredStyle || null,
+color: intent.color || inferredColor || null,
+pattern: intent.pattern || inferPatternFromText(originalQuery) || null,
     searchQuery: keywords.join(" "),
     keywords,
     originalQuery: normalizedQuery,
   };
+};
+
+export const inferColorFromText = (text = "") => {
+  const t = normalizeText(text);
+
+  const colors = [
+    "black",
+    "white",
+    "blue",
+    "red",
+    "green",
+    "yellow",
+    "pink",
+    "grey",
+    "gray",
+    "brown",
+    "beige",
+    "purple",
+    "orange",
+    "navy",
+  ];
+
+  return colors.find((color) => t.includes(color)) || null;
 };
 
 export const getIntentCacheKey = (message = "") =>
@@ -235,10 +391,14 @@ export const getSearchCacheKey = (intent = {}, message = "") => {
   const normalized = normalizeIntent(intent, message);
   const keyParts = [
     normalized.category,
+    normalized.subCategory,
     normalized.brand,
     normalized.budget || "na",
     normalized.gender || "na",
     normalized.useCase || "na",
+     normalized.style || "na",
+  normalized.color || "na",
+  normalized.pattern || "na",
     normalized.searchQuery || "na",
   ];
 

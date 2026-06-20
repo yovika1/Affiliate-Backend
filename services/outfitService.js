@@ -1,4 +1,5 @@
 import Product from "../models/Product.js";
+import { searchProducts } from "./searchService.js";
 
 const MAKEUP_KEYWORDS_BY_OCCASION = {
   party: ["lipstick", "blush", "concealer", "makeup spray"],
@@ -25,7 +26,7 @@ const pickBestProduct = async (category, fallbackCategories = []) => {
   return null;
 };
 
-const buildMakeupPatterns = (occasion = "casual", query = "") => {
+const buildMakeupPatterns = (occasion = "casual", makeupLook = null, query = "") => {
   const baseKeywords =
     MAKEUP_KEYWORDS_BY_OCCASION[occasion] || MAKEUP_KEYWORDS_BY_OCCASION.casual;
 
@@ -37,8 +38,11 @@ const buildMakeupPatterns = (occasion = "casual", query = "") => {
   return [...new Set([...baseKeywords, ...queryHints])];
 };
 
-const fetchMakeupProducts = async (occasion = "casual", query = "") => {
-  const keywords = buildMakeupPatterns(occasion, query);
+const fetchMakeupProducts = async (
+  occasion = "casual",
+  makeupLook = null,
+  query = ""
+) => {  const keywords = buildMakeupPatterns(occasion, query);
 
   const products = await Promise.all(
     keywords.map(async (keyword) => {
@@ -67,21 +71,57 @@ export const fetchOutfitProducts = async (structure = {}, query = "") => {
   const topCategory = structure.top || "tshirt";
   const bottomCategory = structure.bottom || "jeans";
   const occasion = structure.occasion || "casual";
+  const shouldShowMakeup =
+  structure.gender === "women" &&
+  structure.makeupLook &&
+  structure.makeupLook !== "none";
 
-  if (topCategory === "dress") {
-    const [dress, makeup] = await Promise.all([
-      pickBestProduct("dress"),
-      fetchMakeupProducts(occasion, query),
-    ]);
+if (topCategory === "dress") {
+  const [dresses, makeup] = await Promise.all([
+    searchProducts({
+      category: "dresses",
+      style: structure.style,
+    }),
 
-    return { top: dress, bottom: null, makeup };
-  }
-
-  const [top, bottom, makeup] = await Promise.all([
-    pickBestProduct(topCategory, ["shirt", "tshirt"]),
-    pickBestProduct(bottomCategory, ["jeans"]),
-    fetchMakeupProducts(occasion, query),
+      shouldShowMakeup
+      ? fetchMakeupProducts(
+          occasion,
+          structure.makeupLook,
+          query
+        )
+      : Promise.resolve([]),
   ]);
 
-  return { top, bottom, makeup };
+  return {
+    top: dresses.slice(0, 2),
+    bottom: null,
+    makeup,
+  };
+}
+
+const [tops, bottoms, makeup] = await Promise.all([
+  searchProducts({
+    category: topCategory,
+    style: structure.style,
+  }),
+
+  searchProducts({
+    category: bottomCategory,
+    style: structure.style,
+  }),
+
+ shouldShowMakeup
+    ? fetchMakeupProducts(
+        occasion,
+        structure.makeupLook,
+        query
+      )
+    : Promise.resolve([]),
+]);
+
+return {
+  top: tops.slice(0, 2),
+  bottom: bottoms.slice(0, 2),
+  makeup,
+};
 };

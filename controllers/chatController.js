@@ -41,12 +41,19 @@ const safeParse = (data) => {
 };
 
 const normalizeSessionId = (value = "") =>
-  String(value).trim().replace(/[^a-zA-Z0-9:_-]/g, "").slice(0, 120);
+  String(value)
+    .trim()
+    .replace(/[^a-zA-Z0-9:_-]/g, "")
+    .slice(0, 120);
 
 const getReplyCacheKey = (message = "", products = []) => {
   const productKey = products
     .slice(0, 5)
-    .map((product) => [product._id, product.category, product.currentPrice].filter(Boolean).join("-"))
+    .map((product) =>
+      [product._id, product.category, product.currentPrice]
+        .filter(Boolean)
+        .join("-"),
+    )
     .join("|");
 
   return `reply:${normalizeText(message)}:${productKey || "no-products"}`;
@@ -75,9 +82,10 @@ const attachAffiliateLinks = async (products = []) =>
 export const chatHandler = async (req, res) => {
   try {
     const sessionId = normalizeSessionId(req.body?.sessionId);
-    const cleanMessage = typeof req.body?.message === "string"
-      ? req.body.message.trim().slice(0, MAX_MESSAGE_LENGTH)
-      : "";
+    const cleanMessage =
+      typeof req.body?.message === "string"
+        ? req.body.message.trim().slice(0, MAX_MESSAGE_LENGTH)
+        : "";
 
     if (!sessionId || !cleanMessage) {
       return res.status(400).json({
@@ -91,11 +99,14 @@ export const chatHandler = async (req, res) => {
     history = history.slice(-MAX_HISTORY);
 
     if (isOutfitQuery(cleanMessage)) {
-
       const structure = await generateOutfitStructure(cleanMessage);
       const outfit = await fetchOutfitProducts(structure, cleanMessage);
       const outfitWithLinks = {};
-
+      const formatText = (text = "") =>
+        text
+          .split(" ")
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(" ");
       for (const [key, item] of Object.entries(outfit)) {
         if (!item) continue;
 
@@ -112,11 +123,40 @@ export const chatHandler = async (req, res) => {
       }
 
       const hasPieces = Object.keys(outfitWithLinks).length > 0;
-      const hasMakeup = Array.isArray(outfitWithLinks.makeup) && outfitWithLinks.makeup.length > 0;
-      const reply = hasPieces
-        ? `Here is a ${structure?.occasion || "stylish"} outfit idea for you${hasMakeup ? " with makeup picks" : ""}.`
-        : "I understood the outfit request, but I could not find matching pieces yet.";
+      const hasMakeup =
+        Array.isArray(outfitWithLinks.makeup) &&
+        outfitWithLinks.makeup.length > 0;
+      let reply = "";
 
+      if (hasPieces) {
+        reply = `✨ ${formatText(structure?.style || "Stylish")} Look
+
+Top:
+${topName || "-"}
+
+Bottom:
+${bottomName || "-"}
+
+${
+  structure?.makeupLook
+    ? `Beauty Match:
+${structure.makeupLook} makeup look\n`
+    : ""
+}
+        
+Why this works:
+A balanced ${structure?.style || "fashionable"} outfit perfect for ${
+          structure?.occasion || "everyday wear"
+        }.`;
+      } else {
+        reply =
+          "I understood the outfit request, but I could not find matching pieces yet.";
+      }
+
+      const topName = outfitWithLinks.top?.[0]?.productName || structure.top;
+
+      const bottomName =
+        outfitWithLinks.bottom?.[0]?.productName || structure.bottom;
       history.push({ role: "assistant", content: reply });
       await saveSessionHistory(sessionId, history);
 
@@ -146,7 +186,6 @@ export const chatHandler = async (req, res) => {
     products = products ? safeParse(products) : null;
 
     if (!products) {
-
       try {
         products = await searchProducts(intent, cleanMessage);
       } catch (err) {
@@ -155,7 +194,11 @@ export const chatHandler = async (req, res) => {
       }
 
       if (isNonEmptyArray(products)) {
-        await setCache(searchCacheKey, JSON.stringify(products), CACHE_TTL.search);
+        await setCache(
+          searchCacheKey,
+          JSON.stringify(products),
+          CACHE_TTL.search,
+        );
       }
     }
 
@@ -163,9 +206,7 @@ export const chatHandler = async (req, res) => {
     const results = await attachAffiliateLinks(products);
     const replyCacheKey = getReplyCacheKey(cleanMessage, results);
 
-    let assistantReply = results.length
-      ? await getCache(replyCacheKey)
-      : null;
+    let assistantReply = results.length ? await getCache(replyCacheKey) : null;
 
     assistantReply = typeof assistantReply === "string" ? assistantReply : null;
 

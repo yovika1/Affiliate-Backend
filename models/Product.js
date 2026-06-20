@@ -1,5 +1,8 @@
 import mongoose from "mongoose";
-import { buildProductSearchText, normalizeText } from "../Utils/searchHelpers.js";
+import {
+  buildProductSearchText,
+  normalizeText,
+} from "../Utils/searchHelpers.js";
 
 const productSchema = new mongoose.Schema(
   {
@@ -64,13 +67,58 @@ const productSchema = new mongoose.Schema(
       type: String,
       enum: ["men", "women"],
     },
+
+    style: {
+      type: String,
+      default: null,
+      index: true,
+    },
+
+    color: {
+      type: String,
+      default: null,
+      index: true,
+    },
     tags: [String],
 
+    pattern: {
+      type: String,
+      default: null,
+      index: true,
+    },
     useCase: {
       type: String,
       enum: ["casual", "formal", "gym", "party", "college"],
       default: "casual",
     },
+
+    makeupLook: {
+  type: String,
+  enum: [
+    "natural",
+    "dewy",
+    "soft-glam",
+    "glam",
+    "bold",
+    "minimal"
+  ],
+  default: null,
+  index: true,
+},
+
+colorPalette: {
+  type: String,
+  enum: [
+    "neutral",
+    "black-white",
+    "earth-tone",
+    "pastel",
+    "monochrome",
+    "bright"
+  ],
+  default: null,
+  index: true,
+},
   },
   { timestamps: true },
 );
@@ -84,19 +132,22 @@ productSchema.index({
   currentPrice: 1,
 });
 
-productSchema.index({
-  productName: "text",
-  brand: "text",
-  searchableText: "text",
-  tags: "text",
-}, {
-  weights: {
-    productName: 10,
-    brand: 8,
-    tags: 6,
-    searchableText: 4,
+productSchema.index(
+  {
+    productName: "text",
+    brand: "text",
+    searchableText: "text",
+    tags: "text",
   },
-});
+  {
+    weights: {
+      productName: 10,
+      brand: 8,
+      tags: 6,
+      searchableText: 4,
+    },
+  },
+);
 
 productSchema.pre("save", function normalizeProductSearchData(next) {
   if (this.brand) {
@@ -104,9 +155,7 @@ productSchema.pre("save", function normalizeProductSearchData(next) {
   }
 
   if (Array.isArray(this.tags)) {
-    this.tags = this.tags
-      .map((tag) => normalizeText(tag))
-      .filter(Boolean);
+    this.tags = this.tags.map((tag) => normalizeText(tag)).filter(Boolean);
   }
 
   if (this.productUrl) {

@@ -47,6 +47,9 @@ const buildStrictFilters = (intent) => {
     filters.push({ category: intent.category });
   }
 
+  if (intent.subCategory) {
+  filters.push({ subCategory: intent.subCategory });
+}
   if (intent.brand && intent.brand !== "unknown") {
     filters.push({ brand: intent.brand });
   }
@@ -55,6 +58,18 @@ const buildStrictFilters = (intent) => {
     filters.push({
       $or: [{ gender: intent.gender }, { gender: { $exists: false } }],
     });
+  }
+
+  if (intent.style) {
+    filters.push({ style: intent.style });
+  }
+
+  if (intent.color) {
+    filters.push({ color: intent.color });
+  }
+
+  if (intent.pattern) {
+    filters.push({ pattern: intent.pattern });
   }
 
   if (intent.useCase) {
@@ -84,8 +99,19 @@ const buildRelaxedFilters = (intent) => {
   const filters = [{ isSearchable: true }];
 
   if (intent.category) filters.push({ category: intent.category });
-  if (intent.brand && intent.brand !== "unknown") filters.push({ brand: intent.brand });
-  if (intent.gender) filters.push({ $or: [{ gender: intent.gender }, { gender: { $exists: false } }] });
+  if (intent.subCategory) {
+  filters.push({ subCategory: intent.subCategory });
+}
+  if (intent.brand && intent.brand !== "unknown")
+    filters.push({ brand: intent.brand });
+  if (intent.gender)
+    filters.push({
+      $or: [{ gender: intent.gender }, { gender: { $exists: false } }],
+    });
+  if (intent.style) {
+    filters.push({ style: intent.style });
+  }
+
   if (intent.budget) {
     filters.push({
       $or: [
@@ -127,7 +153,11 @@ const scoreProduct = (product, intent, terms, queryText = "") => {
       product.productName,
       product.brand,
       product.category,
+      product.subCategory,
       product.gender,
+      product.style,
+      product.color,
+      product.pattern,
       product.useCase,
       product.searchableText,
       ...(Array.isArray(product.tags) ? product.tags : []),
@@ -142,16 +172,34 @@ const scoreProduct = (product, intent, terms, queryText = "") => {
   if (normalizedQuery && haystack.includes(normalizedQuery)) score += 35;
   if (normalizedQuery && productName.includes(normalizedQuery)) score += 30;
 
-  const keywordTerms = intent.keywords?.length ? intent.keywords : extractSearchKeywords(queryText, 8);
+  const keywordTerms = intent.keywords?.length
+    ? intent.keywords
+    : extractSearchKeywords(queryText, 8);
   keywordTerms.forEach((keyword) => {
     if (productName.includes(keyword)) score += 12;
     else if (haystack.includes(keyword)) score += 7;
   });
 
   if (intent.category && product.category === intent.category) score += 32;
+  if (
+  intent.subCategory &&
+  product.subCategory === intent.subCategory
+) {
+  score += 30;
+}
   if (intent.brand !== "unknown" && product.brand === intent.brand) score += 25;
   if (intent.gender && product.gender === intent.gender) score += 10;
   if (intent.useCase && product.useCase === intent.useCase) score += 12;
+  if (intent.color && product.color === intent.color) {
+    score += 20;
+  }
+
+  if (intent.style && product.style === intent.style) {
+    score += 40;
+  }
+  if (intent.pattern && product.pattern && intent.pattern === product.pattern) {
+    score += 15;
+  }
   if (typeof product.rating === "number") score += product.rating * 5;
   if (typeof product.reviewsCount === "number") {
     score += Math.min(12, Math.log10(product.reviewsCount + 1) * 4);
@@ -173,7 +221,13 @@ const scoreProduct = (product, intent, terms, queryText = "") => {
   return score;
 };
 
-const isHighConfidenceMatch = (product, score, intent, terms, queryText = "") => {
+const isHighConfidenceMatch = (
+  product,
+  score,
+  intent,
+  terms,
+  queryText = "",
+) => {
   const normalizedQuery = normalizeText(queryText);
   const haystack = normalizeText(
     [
@@ -187,11 +241,19 @@ const isHighConfidenceMatch = (product, score, intent, terms, queryText = "") =>
     ].join(" "),
   );
   const matchedTerms = countMatchedTerms(haystack, terms);
-  const minimumMatchedTerms = Math.min(3, Math.max(1, Math.ceil(Math.min(terms.length, 6) / 2)));
+  const minimumMatchedTerms = Math.min(
+    3,
+    Math.max(1, Math.ceil(Math.min(terms.length, 6) / 2)),
+  );
 
   if (!normalizedQuery) return score >= MIN_SEARCH_SCORE;
   if (product.textScore && Number(product.textScore) >= 1.5) return true;
-  if (intent.category && product.category === intent.category && matchedTerms >= 1) return true;
+  if (
+    intent.category &&
+    product.category === intent.category &&
+    matchedTerms >= 1
+  )
+    return true;
   if (intent.brand !== "unknown" && product.brand === intent.brand) return true;
   if (haystack.includes(normalizedQuery)) return true;
 
@@ -244,6 +306,9 @@ const fetchTextMatches = async (intent, queryText, filters, terms) => {
       discountPercent: 1,
       rating: 1,
       reviewsCount: 1,
+      style: 1,
+      color: 1,
+      pattern: 1,
       imageUrl: 1,
       productUrl: 1,
       affiliateUrl: 1,
@@ -260,7 +325,8 @@ const fetchRegexMatches = async (filters, terms, limit = CANDIDATE_LIMIT) => {
   const query = {};
 
   if (filters.length) query.$and = filters;
-  if (keywordClauses.length) query.$or = keywordClauses.flatMap((clause) => clause.$or);
+  if (keywordClauses.length)
+    query.$or = keywordClauses.flatMap((clause) => clause.$or);
 
   return Product.find(query).limit(limit).lean();
 };
@@ -287,21 +353,35 @@ export const searchProducts = async (intentInput, queryText = "") => {
     let candidates = dedupeProducts([textStrict, regexStrict, textRelaxed]);
 
     if (!candidates.length) {
-      console.log("[search] Primary pools empty, trying category and keyword fallback");
+      console.log(
+        "[search] Primary pools empty, trying category and keyword fallback",
+      );
 
       const categoryFallback = intent.category
-        ? await Product.find({ isSearchable: true, category: intent.category }).limit(CANDIDATE_LIMIT).lean()
+        ? await Product.find({ isSearchable: true, category: intent.category })
+            .limit(CANDIDATE_LIMIT)
+            .lean()
         : [];
 
-      const regexRelaxed = await fetchRegexMatches(relaxedFilters, expandedTerms, CANDIDATE_LIMIT);
+      const regexRelaxed = await fetchRegexMatches(
+        relaxedFilters,
+        expandedTerms,
+        CANDIDATE_LIMIT,
+      );
       candidates = dedupeProducts([categoryFallback, regexRelaxed]);
     }
 
     if (!candidates.length) {
       console.log("[search] Final query-aware fallback triggered");
 
-      const broadTerms = intent.keywords?.length ? intent.keywords : extractSearchKeywords(queryText, 4);
-      candidates = await fetchRegexMatches([{ isSearchable: true }], broadTerms, 24);
+      const broadTerms = intent.keywords?.length
+        ? intent.keywords
+        : extractSearchKeywords(queryText, 4);
+      candidates = await fetchRegexMatches(
+        [{ isSearchable: true }],
+        broadTerms,
+        24,
+      );
     }
 
     const rankedProducts = candidates

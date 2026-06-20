@@ -4,11 +4,13 @@ import {
   inferGenderFromText,
   inferUseCaseFromText,
   normalizeIntent,
+  inferStyleFromText,
   normalizeText,
 } from "../Utils/searchHelpers.js";
 
 const GEMINI_MODEL = "gemini-2.5-flash";
-const EMBEDDING_MODEL = process.env.GEMINI_EMBEDDING_MODEL || "gemini-embedding-001";
+const EMBEDDING_MODEL =
+  process.env.GEMINI_EMBEDDING_MODEL || "gemini-embedding-001";
 const TRANSIENT_ERROR_DELAY_MS = 1200;
 const AI_COOLDOWN_MS = 60 * 1000;
 
@@ -85,7 +87,10 @@ const getEmbeddingModel = () => {
 };
 
 const stripCodeFences = (text = "") =>
-  text.replace(/```json/gi, "").replace(/```/g, "").trim();
+  text
+    .replace(/```json/gi, "")
+    .replace(/```/g, "")
+    .trim();
 
 const extractJSON = (text = "") => {
   try {
@@ -97,21 +102,37 @@ const extractJSON = (text = "") => {
   }
 };
 
-const buildHeuristicIntent = (query = "") =>
+const buildHeuristicIntent = (query = "") => { 
+    const inferredSubCategory =
+    inferCategoryFromText(query);
+
+  const category =
+    ["makeup", "skincare", "perfume",]
+      .includes(inferredSubCategory)
+      ? "beauty"
+      : inferredSubCategory
+        ? "fashion"
+        : "general";
+
   normalizeIntent(
     {
-      category: inferCategoryFromText(query),
+
+      category,
+      subCategory: inferredSubCategory,
       gender: inferGenderFromText(query),
       useCase: inferUseCaseFromText(query),
+          style: inferStyleFromText(query),
       brand: "unknown",
       budget: null,
       searchQuery: query,
     },
     query,
   );
+}
 
 const formatCurrency = (value) => {
-  if (typeof value !== "number" || !Number.isFinite(value)) return "Price unavailable";
+  if (typeof value !== "number" || !Number.isFinite(value))
+    return "Price unavailable";
   return `Rs.${Math.round(value)}`;
 };
 
@@ -120,7 +141,8 @@ const buildProductReason = (product = {}) => {
 
   if (product.brand && product.brand !== "unknown") reasons.push(product.brand);
   if (product.useCase) reasons.push(product.useCase);
-  if (typeof product.rating === "number") reasons.push(`${product.rating.toFixed(1)} rating`);
+  if (typeof product.rating === "number")
+    reasons.push(`${product.rating.toFixed(1)} rating`);
 
   return reasons.length ? reasons.join(" | ") : "good match for your search";
 };
@@ -142,7 +164,10 @@ const buildLocalAssistantReply = (products = []) => {
 const normalizeOutfitPiece = (value, fallback) =>
   inferCategoryFromText(value || "") || fallback;
 
-const generateText = async (prompt, { label = "ai", allowRetry = true } = {}) => {
+const generateText = async (
+  prompt,
+  { label = "ai", allowRetry = true } = {},
+) => {
   const model = getChatModel();
   if (!model) return null;
 
@@ -150,7 +175,11 @@ const generateText = async (prompt, { label = "ai", allowRetry = true } = {}) =>
     const result = await model.generateContent(prompt);
     return result.response.text()?.trim() || null;
   } catch (error) {
-    if (allowRetry && isRetryableAiError(error) && !isQuotaOrAvailabilityError(error)) {
+    if (
+      allowRetry &&
+      isRetryableAiError(error) &&
+      !isQuotaOrAvailabilityError(error)
+    ) {
       await wait(TRANSIENT_ERROR_DELAY_MS);
       return generateText(prompt, { label, allowRetry: false });
     }
@@ -175,19 +204,70 @@ Extract shopping intent from this query:
 Return STRICT JSON only:
 {
   "category": "",
+  "subCategory": "",
   "brand": "",
   "budget": 0,
   "gender": "",
+    "style": "",
+  "color": "",
+  "pattern": "",
   "useCase": "",
   "searchQuery": ""
 }
 
 Rules:
-- category must be one of: tshirt, shirt, jeans, dress
-- brand should be "unknown" if missing
-- budget should be the maximum user budget, else null
-- gender should be "men", "women", or null
-- useCase should be "casual", "formal", "gym", "party", "college", or null
+- category must be one of:
+
+fashion,
+beauty,
+general
+
+subCategory:
+dresses,
+jeans,
+shirt,
+tshirt,
+kurta,
+makeup,
+skincare,
+perfume,
+haircare
+
+- gender should be:
+  men,
+  women,
+  null
+
+- useCase should be:
+  casual,
+  formal,
+  college,
+  party,
+  office,
+  travel,
+  wedding,
+  gym
+
+ - pattern should be:
+solid,
+printed,
+checked,
+striped,
+graphic,
+null
+
+- style should be:
+  oversized,
+  korean,
+  old money,
+  streetwear,
+  minimal,
+  coquette,
+  y2k,
+  ethnic,
+  null
+
+- color should contain requested color or null
 - searchQuery should be short helpful keywords
 `;
 
@@ -273,7 +353,7 @@ export const isOutfitQuery = (query = "") => {
     "style this",
     "style me",
     "full look",
-    "help me dress",
+    "help me dresses",
   ];
 
   if (keywords.some((keyword) => normalized.includes(normalizeText(keyword)))) {
@@ -289,9 +369,16 @@ export const isOutfitQuery = (query = "") => {
 
 export const generateOutfitStructure = async (query) => {
   const fallback = {
+     gender: /men|male|boy|guy/i.test(query)
+    ? "men"
+    : "women",
     top: inferCategoryFromText(query) || "tshirt",
-    bottom: /dress/i.test(query) ? null : "jeans",
+    bottom: /dresses/i.test(query) ? null : "jeans",
     occasion: inferUseCaseFromText(query) || "casual",
+
+  style: inferStyleFromText(query),
+  colorPalette: null,
+  makeupLook: null,
   };
 
   const prompt = `
@@ -300,27 +387,107 @@ Create outfit structure for:
 "${query}"
 
 Return STRICT JSON only:
+
 {
+"gender": "",
   "top": "",
   "bottom": "",
-  "occasion": ""
+  "occasion": "",
+  "style": "",
+  "colorPalette": "",
+  "makeupLook": ""
 }
 
 Rules:
-- top must be one of: tshirt, shirt, dress
-- bottom must be "jeans" or null
-- occasion should be one of: casual, formal, gym, party, college
-`;
 
+- gender:
+men,
+women
+
+- top can be:
+tshirt,
+shirt,
+kurta,
+dresses,
+blazer
+
+- bottom can be:
+jeans,
+trousers,
+skirt,
+shorts,
+null
+
+- occasion:
+casual,
+formal,
+party,
+college,
+wedding,
+travel,
+gym
+
+- style:
+oversized,
+korean,
+old money,
+streetwear,
+minimal,
+coquette,
+y2k,
+ethnic
+
+- colorPalette:
+neutral,
+black-white,
+earth-tone,
+pastel,
+monochrome,
+bright
+
+- makeupLook:
+natural,
+glam,
+soft-glam,
+dewy,
+bold,
+minimal,
+none
+
+Important:
+
+- For men outfits always set makeupLook = "none"
+- Only suggest makeupLook for women outfits
+`
+;
   const text = await generateText(prompt, { label: "outfit" });
   if (!text) return fallback;
 
   const parsed = extractJSON(text) || {};
   return {
+     gender:
+    parsed.gender ||
+    fallback.gender,
     top: normalizeOutfitPiece(parsed.top, fallback.top),
     bottom: normalizeOutfitPiece(parsed.bottom, fallback.bottom),
     occasion: inferUseCaseFromText(parsed.occasion || "") || fallback.occasion,
+    style:
+    parsed.style ||
+    fallback.style ||
+    null,
+
+  colorPalette:
+    parsed.colorPalette ||
+    fallback.colorPalette ||
+    null,
+
+  makeupLook:
+    parsed.makeupLook ||
+    fallback.makeupLook ||
+    null,
+
   };
 };
 
 export const isAiCoolingDown = () => isAiTemporarilyDisabled();
+top

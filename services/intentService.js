@@ -114,7 +114,7 @@ const buildHeuristicIntent = (query = "") => {
         ? "fashion"
         : "general";
 
-  normalizeIntent(
+ return normalizeIntent(
     {
 
       category,
@@ -231,7 +231,7 @@ kurta,
 makeup,
 skincare,
 perfume,
-haircare
+makeup spray,
 
 - gender should be:
   men,
@@ -318,23 +318,30 @@ export const generateAssistantReply = async (history, products) => {
     .slice(0, 5)
     .map(
       (product, index) =>
-        `${index + 1}. ${product.productName} | ${formatCurrency(product.currentPrice)} | ${buildProductReason(product)}`,
+        `${index + 1}. ${product.productName} | ${buildProductReason(product)}`
     )
     .join("\n");
 
   const prompt = `
-You are a helpful shopping assistant.
+You are Rangyblux AI Stylist, a fashion and beauty shopping assistant.
 
 Conversation:
 ${history.map((entry) => `${entry.role}: ${entry.content}`).join("\n")}
 
-Top products:
+Available products:
 ${productSummary || "No products found"}
 
-Task:
-- Reply in a friendly, concise tone.
-- Recommend up to 3 products with short reasons.
-- If there are no products, ask one helpful follow-up question.
+Rules:
+- Reply in a friendly, stylish and concise tone.
+- Start with a 1-line recommendation.
+- Then recommend up to 3 products.
+- Always mention the product names exactly as provided.
+- For each product, explain in one short sentence why it suits the user's request.
+- Use bullets instead of long paragraphs.
+- Do NOT mention prices.
+- Do NOT invent products that are not in the available products list.
+- End with one short styling tip.
+- If there are no matching products, ask one helpful follow-up question.
 `;
 
   const text = await generateText(prompt, { label: "reply" });
@@ -367,18 +374,131 @@ export const isOutfitQuery = (query = "") => {
   );
 };
 
-export const generateOutfitStructure = async (query) => {
-  const fallback = {
-     gender: /men|male|boy|guy/i.test(query)
-    ? "men"
-    : "women",
-    top: inferCategoryFromText(query) || "tshirt",
-    bottom: /dresses/i.test(query) ? null : "jeans",
-    occasion: inferUseCaseFromText(query) || "casual",
+export const generateOutfitReply = async (structure, outfit) => {
+  const top =
+  outfit.top?.map(
+    p => `${p.productName} (${p.gender || ""}, ${p.category || ""})`
+  ).join("\n") || "";
 
-  style: inferStyleFromText(query),
-  colorPalette: null,
-  makeupLook: null,
+  const bottom =
+  outfit.bottom?.map(
+    p => `${p.productName} (${p.gender || ""}, ${p.category || ""})`
+  ).join("\n") || "";
+
+  const makeup =
+  outfit.makeup?.map(
+    p => `${p.productName} (${p.category || ""})`
+  ).join("\n") || "";
+
+  const prompt = `
+You are Rangyblux AI Stylist.
+
+The product cards below will already show images, prices and buttons.
+Do NOT repeat that information.
+
+Detected Outfit:
+
+Style: ${structure.style}
+Occasion: ${structure.occasion}
+Gender: ${structure.gender}
+
+Available Products:
+
+Top:
+${top || "None"}
+
+Bottom:
+${bottom || "None"}
+
+Beauty:
+${makeup || "None"}
+
+Rules:
+
+- Sound like a premium fashion stylist.
+- Never invent products.
+- Mention only available products.
+- Mention every product name only once.
+- Never mention prices.
+- Keep the reply under 80 words.
+- Use bullets.
+
+Very Important:
+
+- Never mix men's and women's products.
+- If Gender = women, recommend only women's products.
+- If Gender = men, recommend only men's products.
+- If a product name contains "Men" and gender is women, ignore it.
+- If a product name contains "Women" and gender is men, ignore it.
+Format:
+
+✨ <Style Name>
+
+• <Product Name> — short reason
+
+• <Product Name> — short reason
+
+${
+  makeup
+    ? "• <Beauty Product> — short reason"
+    : ""
+}
+
+Why it works:
+One short sentence.
+
+Styling Tip:
+One short sentence.
+`;
+
+  return await generateText(prompt, {
+    label: "outfitReply",
+  });
+};
+
+export const generateOutfitStructure = async (query) => {
+ 
+  const normalized = normalizeText(query);
+
+  const isMen = /men|male|boy|guy/.test(normalized);
+  const gender = isMen ? "men" : "women";
+
+  let top = inferCategoryFromText(query);
+  let bottom = null;
+
+  // Occasion based defaults
+  if (!top) {
+    if (/wedding|reception|engagement/.test(normalized)) {
+      top = gender === "women" ? "dresses" : "kurta";
+    } else if (/party/.test(normalized)) {
+      top = gender === "women" ? "dresses" : "shirt";
+    } else if (/office|formal/.test(normalized)) {
+      top = "blazer";
+    } else if (/college|campus/.test(normalized)) {
+      top = "tshirt";
+    } else if (/gym/.test(normalized)) {
+      top = "tshirt";
+    } else {
+      top = "tshirt";
+    }
+  }
+
+  if (top === "dresses") {
+    bottom = null;
+  } else if (/party|office|formal/.test(normalized)) {
+    bottom = gender === "women" ? "skirt" : "trousers";
+  } else {
+    bottom = "jeans";
+  }
+
+  const fallback = {
+    gender,
+    top,
+    bottom,
+    occasion: inferUseCaseFromText(query) || "casual",
+    style: inferStyleFromText(query),
+    colorPalette: null,
+    makeupLook: gender === "women" ? "natural" : "none",
   };
 
   const prompt = `
@@ -490,4 +610,3 @@ Important:
 };
 
 export const isAiCoolingDown = () => isAiTemporarilyDisabled();
-top

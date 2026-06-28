@@ -30,13 +30,36 @@ const ALLOWED_USE_CASES = [
 ];
 
 const CATEGORY_ALIASES = {
-  tshirt: ["tshirt", "t-shirt", "tee", "tees"],
-  shirt: ["shirt", "shirts", "polo"],
-  jeans: ["jeans", "jean", "denim", "denims"],
-  dresses: ["dresses", "dresses", "gown", "gowns"],
+  tshirt: ["tshirt", "t-shirt", "tee", "tees","top","crop top","oversized tee", "oversized top",],
+  shirt: ["shirt", "shirts", "polo","formal shirt", "casual shirt","button down",],
+  jeans: ["jeans", "jean", "denim", "denims", "denim jeans", "wide leg jeans","baggy jeans", "straight jeans","slim fit jeans",],
+  dresses: ["dresses", "dresses", "gown", "gowns", "maxi dress","mini dress","party dress",],
   skincare: ["skincare", "face wash", "serum", "moisturizer"],
 makeup: ["makeup", "lipstick", "foundation", "concealer"],
 perfume: ["perfume", "fragrance", "deo"],
+lipstick: ["lipstick", "matte lipstick", "liquid lipstick"],
+
+  foundation: ["foundation", "liquid foundation"],
+
+  concealer: ["concealer"],
+
+  blush: ["blush"],
+
+  mascara: ["mascara"],
+
+  eyeliner: ["eyeliner", "kajal"],
+
+  skincare: [
+    "skincare",
+    "skin care",
+    "face wash",
+    "cleanser",
+    "serum",
+    "moisturizer",
+    "sunscreen",
+    "spf",
+    "cream",
+  ],
 };
 
 const USE_CASE_KEYWORDS = {

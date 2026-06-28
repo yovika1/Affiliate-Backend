@@ -18,16 +18,14 @@ const productSchema = new mongoose.Schema(
     },
     category: {
       type: String,
-      enum: [
-        "tshirt",
-        "shirt",
-        "jeans",
-        "dress",
-        "fashion",
-        "beauty",
-        "general",
-      ],
+      enum: ["fashion", "beauty", "general"],
       required: true,
+    },
+
+    subCategory: {
+      type: String,
+      default: null,
+      index: true,
     },
     brand: {
       type: String,
@@ -93,32 +91,25 @@ const productSchema = new mongoose.Schema(
     },
 
     makeupLook: {
-  type: String,
-  enum: [
-    "natural",
-    "dewy",
-    "soft-glam",
-    "glam",
-    "bold",
-    "minimal"
-  ],
-  default: null,
-  index: true,
-},
+      type: String,
+      enum: ["natural", "dewy", "soft-glam", "glam", "bold", "minimal"],
+      default: null,
+      index: true,
+    },
 
-colorPalette: {
-  type: String,
-  enum: [
-    "neutral",
-    "black-white",
-    "earth-tone",
-    "pastel",
-    "monochrome",
-    "bright"
-  ],
-  default: null,
-  index: true,
-},
+    colorPalette: {
+      type: String,
+      enum: [
+        "neutral",
+        "black-white",
+        "earth-tone",
+        "pastel",
+        "monochrome",
+        "bright",
+      ],
+      default: null,
+      index: true,
+    },
   },
   { timestamps: true },
 );

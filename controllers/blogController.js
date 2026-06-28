@@ -6,6 +6,10 @@ import {
   buildProductSearchText,
   normalizeText,
 } from "../Utils/searchHelpers.js";
+import {
+  detectCategory,
+  detectBeautyCategory,
+} from "../Utils/productHelpers.js";
 
 export const createProduct = async (req, res) => {
   try {
@@ -16,7 +20,6 @@ export const createProduct = async (req, res) => {
       subCategory,
       productTitle,
       badge,
-
       productName,
       currentPrice,
       originalPrice,
@@ -79,53 +82,79 @@ export const createProduct = async (req, res) => {
     else if (productUrl?.includes("ajio"))
       detectedPlatform = "ajio";
 
-    const productData = {
-      productName:
-        productName ||
-        fetchedData?.productName ||
-        "Untitled Product",
 
-      imageUrl,
+    let productCategory = category;
+    let finalSubCategory = subCategory;
 
-      productUrl,
-      affiliateUrl,
+const finalName =
+  productName ||
+  fetchedData?.productName ||
+  "";
+  
+if (category === "fashion") {
+  const detected = detectCategory(finalName);
 
-      currentPrice:
-        Number(currentPrice) ||
-        fetchedData?.currentPrice,
+  if (detected) {
+    finalSubCategory = detected;
+  }
+}
+if (category === "beauty") {
+  productCategory = "beauty";
 
-      originalPrice:
-        Number(originalPrice) ||
-        fetchedData?.originalPrice,
+  finalSubCategory =
+    detectBeautyCategory(finalName) ||
+    subCategory;
+}
+      
+const productData = {
+  productName:
+    productName ||
+    fetchedData?.productName ||
+    "Untitled Product",
 
-      discountPercent:
-        Number(discountPercent) ||
-        fetchedData?.discountPercent,
+  imageUrl,
 
-      rating:
-        Number(rating) ||
-        fetchedData?.rating,
+  productUrl,
+  affiliateUrl,
 
-      reviewsCount:
-        Number(reviewsCount) ||
-        fetchedData?.reviewsCount,
+  currentPrice:
+    Number(currentPrice) ||
+    fetchedData?.currentPrice,
 
-      category,
+  originalPrice:
+    Number(originalPrice) ||
+    fetchedData?.originalPrice,
 
-      brand: normalizeText(
-        fetchedData?.brand || "unknown"
-      ),
+  discountPercent:
+    Number(discountPercent) ||
+    fetchedData?.discountPercent,
 
-      platform: detectedPlatform,
-    };
+  rating:
+    Number(rating) ||
+    fetchedData?.rating,
 
-    productData.searchableText =
-      buildProductSearchText(productData);
+  reviewsCount:
+    Number(reviewsCount) ||
+    fetchedData?.reviewsCount,
 
-    productData.embedding =
-      await generateEmbedding(
-        productData.searchableText
-      );
+  category: productCategory,
+  subCategory: finalSubCategory,
+
+  brand: normalizeText(
+    fetchedData?.brand || "unknown"
+  ),
+
+  platform: detectedPlatform,
+};
+
+productData.searchableText =
+  buildProductSearchText(productData);
+
+productData.embedding =
+  await generateEmbedding(
+    productData.searchableText
+  );
+
 
     const newProduct =
       await Product.create(productData);
@@ -135,8 +164,9 @@ export const createProduct = async (req, res) => {
         productTitle ||
         productData.productName,
 
-      category,
-      subCategory,
+    
+  category: productCategory,
+  subCategory: finalSubCategory,
       badge,
       details,
 

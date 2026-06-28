@@ -54,43 +54,57 @@ const detectColor = (text = "") => {
 };
 
 const detectStyle = (text = "") => {
-const value = text.toLowerCase();
+  const value = text.toLowerCase();
 
-if (value.includes("oversized")) return "oversized";
-if (value.includes("wide leg")) return "wide-leg";
-if (value.includes("regular fit")) return "regular-fit";
-if (value.includes("slim fit")) return "slim-fit";
-if (value.includes("loose fit")) return "loose-fit";
-if (value.includes("cargo")) return "cargo";
-if (value.includes("baggy")) return "baggy";
-if (value.includes("straight fit")) return "straight-fit";
-if (value.includes("bootcut")) return "bootcut";
+  if (value.includes("oversized")) return "oversized";
+  if (value.includes("wide leg")) return "wide-leg";
+  if (value.includes("regular fit")) return "regular-fit";
+  if (value.includes("slim fit")) return "slim-fit";
+  if (value.includes("loose fit")) return "loose-fit";
+  if (value.includes("cargo")) return "cargo";
+  if (value.includes("baggy")) return "baggy";
+  if (value.includes("straight fit")) return "straight-fit";
+  if (value.includes("bootcut")) return "bootcut";
 
-return null;
+  return null;
 };
-
 
 const detectPattern = (text = "") => {
-const value = text.toLowerCase();
+  const value = text.toLowerCase();
 
-if (value.includes("graphic")) return "graphic";
-if (value.includes("printed")) return "printed";
-if (value.includes("floral")) return "floral";
-if (value.includes("checked")) return "checked";
-if (value.includes("check")) return "checked";
-if (value.includes("striped")) return "striped";
-if (value.includes("stripe")) return "striped";
-if (value.includes("solid")) return "solid";
+  if (value.includes("graphic")) return "graphic";
+  if (value.includes("printed")) return "printed";
+  if (value.includes("floral")) return "floral";
+  if (value.includes("checked")) return "checked";
+  if (value.includes("check")) return "checked";
+  if (value.includes("striped")) return "striped";
+  if (value.includes("stripe")) return "striped";
+  if (value.includes("solid")) return "solid";
 
-return null;
+  return null;
 };
 
+const detectBeautySubCategory = (text = "") => {
+  const value = text.toLowerCase();
+
+  if (value.includes("lipstick")) return "lipstick";
+  if (value.includes("foundation")) return "foundation";
+  if (value.includes("concealer")) return "concealer";
+  if (value.includes("blush")) return "blush";
+  if (value.includes("mascara")) return "mascara";
+  if (value.includes("eyeliner")) return "eyeliner";
+
+  return "skincare";
+};
 
 const migrate = async () => {
   try {
     await mongoose.connect(process.env.MONGODB_URL);
 
-const products = await Product.find();
+    console.log("✅ MongoDB Connected");
+
+    const products = await Product.find();
+
     let updated = 0;
 
     for (const product of products) {
@@ -99,7 +113,32 @@ const products = await Product.find();
         ${product.productUrl || ""}
       `;
 
+      let category = product.category;
+      let subCategory = product.subCategory;
+
+      // Fashion migration
+      if (
+        ["tshirt", "shirt", "jeans", "dresses"].includes(
+          product.category
+        )
+      ) {
+        category = "fashion";
+        subCategory = product.category;
+      }
+
+      // Beauty migration
+      if (product.category === "beauty") {
+        category = "beauty";
+
+        subCategory =
+          product.subCategory ||
+          detectBeautySubCategory(text);
+      }
+
       const updates = {
+        category,
+        subCategory,
+
         gender: detectGender(text),
         color: detectColor(text),
         style: detectStyle(text),
@@ -114,14 +153,19 @@ const products = await Product.find();
       );
 
       updated++;
-      console.log(`Updated ${updated}/${products.length}`);
+
+      console.log(
+        `Updated ${updated}/${products.length}`
+      );
     }
 
-    console.log(`✅ Migration completed. Updated ${updated} products`);
+    console.log(
+      `✅ Migration completed. Updated ${updated} products`
+    );
 
     process.exit(0);
   } catch (err) {
-    console.error(err);
+    console.error("❌ Migration Error:", err);
     process.exit(1);
   }
 };

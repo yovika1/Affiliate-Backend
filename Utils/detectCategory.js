@@ -56,11 +56,18 @@ export const detectCategory = (name) => {
   if (isUnsupportedProduct(n)) return null;
 
   if (n.includes("tshirt") || n.includes("tee")) return "tshirt";
+  if (
+  n.includes("tshirt") ||
+  n.includes("tee") ||
+  n.includes("top") ||
+  n.includes("crop top")
+)
+  return "tshirt";
   if (n.includes("shirt") || n.includes("polo")) return "shirt";
   if (n.includes("jeans") || n.includes("denim")) return "jeans";
-  if (n.includes("dress") || n.includes("gown")) return "dress";
+  if (n.includes("dresses") || n.includes("gown")) return "dresses";
 
-  return "tshirt";
+  return null;
 };
 
 export const extractExtraTags = (name) => {

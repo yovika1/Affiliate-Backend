@@ -48,8 +48,8 @@ const buildStrictFilters = (intent) => {
   }
 
   if (intent.subCategory) {
-  filters.push({ subCategory: intent.subCategory });
-}
+    filters.push({ subCategory: intent.subCategory });
+  }
   if (intent.brand && intent.brand !== "unknown") {
     filters.push({ brand: intent.brand });
   }
@@ -100,8 +100,8 @@ const buildRelaxedFilters = (intent) => {
 
   if (intent.category) filters.push({ category: intent.category });
   if (intent.subCategory) {
-  filters.push({ subCategory: intent.subCategory });
-}
+    filters.push({ subCategory: intent.subCategory });
+  }
   if (intent.brand && intent.brand !== "unknown")
     filters.push({ brand: intent.brand });
   if (intent.gender)
@@ -181,14 +181,15 @@ const scoreProduct = (product, intent, terms, queryText = "") => {
   });
 
   if (intent.category && product.category === intent.category) score += 32;
-  if (
-  intent.subCategory &&
-  product.subCategory === intent.subCategory
-) {
-  score += 30;
-}
+  if (intent.subCategory) {
+    if (product.subCategory === intent.subCategory) score += 30;
+    else if (product.subCategory) score -= 50;
+  }
   if (intent.brand !== "unknown" && product.brand === intent.brand) score += 25;
-  if (intent.gender && product.gender === intent.gender) score += 10;
+  if (intent.gender) {
+    if (product.gender === intent.gender) score += 15;
+    else if (product.gender) score -= 100;
+  }
   if (intent.useCase && product.useCase === intent.useCase) score += 12;
   if (intent.color && product.color === intent.color) {
     score += 20;
@@ -246,6 +247,21 @@ const isHighConfidenceMatch = (
     Math.max(1, Math.ceil(Math.min(terms.length, 6) / 2)),
   );
 
+  if (
+    intent.gender &&
+    product.gender &&
+    product.gender !== intent.gender
+) {
+    return false;
+}
+
+if (
+    intent.subCategory &&
+    product.subCategory &&
+    product.subCategory !== intent.subCategory
+) {
+    return false;
+}
   if (!normalizedQuery) return score >= MIN_SEARCH_SCORE;
   if (product.textScore && Number(product.textScore) >= 1.5) return true;
   if (
@@ -357,11 +373,22 @@ export const searchProducts = async (intentInput, queryText = "") => {
         "[search] Primary pools empty, trying category and keyword fallback",
       );
 
-      const categoryFallback = intent.category
-        ? await Product.find({ isSearchable: true, category: intent.category })
-            .limit(CANDIDATE_LIMIT)
-            .lean()
-        : [];
+     let categoryFallback = [];
+
+if (intent.category) {
+  const categoryQuery = {
+    isSearchable: true,
+    category: intent.category,
+  };
+
+  if (intent.gender) {
+    categoryQuery.gender = intent.gender;
+  }
+
+  categoryFallback = await Product.find(categoryQuery)
+    .limit(CANDIDATE_LIMIT)
+    .lean();
+}
 
       const regexRelaxed = await fetchRegexMatches(
         relaxedFilters,
@@ -377,11 +404,17 @@ export const searchProducts = async (intentInput, queryText = "") => {
       const broadTerms = intent.keywords?.length
         ? intent.keywords
         : extractSearchKeywords(queryText, 4);
-      candidates = await fetchRegexMatches(
-        [{ isSearchable: true }],
-        broadTerms,
-        24,
-      );
+      const fallback = [{ isSearchable:true }];
+
+if(intent.gender)
+    fallback.push({ gender:intent.gender });
+
+candidates =
+await fetchRegexMatches(
+    fallback,
+    broadTerms,
+    24
+);
     }
 
     const rankedProducts = candidates

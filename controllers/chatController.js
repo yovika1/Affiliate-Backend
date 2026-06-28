@@ -1,6 +1,7 @@
 import {
   detectIntentAI,
   generateAssistantReply,
+  generateOutfitReply,
   generateOutfitStructure,
   isOutfitQuery,
 } from "../services/intentService.js";
@@ -86,7 +87,7 @@ export const chatHandler = async (req, res) => {
       typeof req.body?.message === "string"
         ? req.body.message.trim().slice(0, MAX_MESSAGE_LENGTH)
         : "";
-
+    // console.log("Is Outfit Query:", isOutfitQuery(cleanMessage));
     if (!sessionId || !cleanMessage) {
       return res.status(400).json({
         error: "sessionId and message required",
@@ -123,40 +124,24 @@ export const chatHandler = async (req, res) => {
       }
 
       const hasPieces = Object.keys(outfitWithLinks).length > 0;
-      const hasMakeup =
-        Array.isArray(outfitWithLinks.makeup) &&
-        outfitWithLinks.makeup.length > 0;
+
       let reply = "";
 
       if (hasPieces) {
-        reply = `✨ ${formatText(structure?.style || "Stylish")} Look
+        reply = await generateOutfitReply(structure, outfitWithLinks);
 
-Top:
-${topName || "-"}
+        if (!reply) {
+          reply = `✨ ${formatText(structure.style || "Stylish")} Look
 
-Bottom:
-${bottomName || "-"}
-
-${
-  structure?.makeupLook
-    ? `Beauty Match:
-${structure.makeupLook} makeup look\n`
-    : ""
-}
-        
-Why this works:
-A balanced ${structure?.style || "fashionable"} outfit perfect for ${
-          structure?.occasion || "everyday wear"
-        }.`;
+       I found a few matching pieces for your ${
+            structure.occasion || "casual"
+          } outfit. Check out the product cards below.`;
+        }
       } else {
         reply =
-          "I understood the outfit request, but I could not find matching pieces yet.";
+          "I understood your outfit request, but I couldn't find matching products yet.";
       }
 
-      const topName = outfitWithLinks.top?.[0]?.productName || structure.top;
-
-      const bottomName =
-        outfitWithLinks.bottom?.[0]?.productName || structure.bottom;
       history.push({ role: "assistant", content: reply });
       await saveSessionHistory(sessionId, history);
 

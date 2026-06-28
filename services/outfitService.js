@@ -2,11 +2,11 @@ import Product from "../models/Product.js";
 import { searchProducts } from "./searchService.js";
 
 const MAKEUP_KEYWORDS_BY_OCCASION = {
-  party: ["lipstick", "blush", "concealer", "makeup spray"],
-  formal: ["concealer", "compact", "lipstick"],
-  casual: ["lipstick", "concealer", "makeup spray"],
+  party: ["lipstick", "blush", "concealer"],
+  formal: ["foundation", "concealer", "lipstick"],
+  casual: ["lipstick", "concealer"],
   college: ["lipstick", "concealer"],
-  gym: ["makeup spray"],
+  gym: ["skincare"],
 };
 
 const pickBestProduct = async (category, fallbackCategories = []) => {
@@ -26,12 +26,17 @@ const pickBestProduct = async (category, fallbackCategories = []) => {
   return null;
 };
 
-const buildMakeupPatterns = (occasion = "casual", makeupLook = null, query = "") => {
+const buildMakeupPatterns = (
+  occasion = "casual",
+  makeupLook = null,
+  query = "",
+) => {
   const baseKeywords =
     MAKEUP_KEYWORDS_BY_OCCASION[occasion] || MAKEUP_KEYWORDS_BY_OCCASION.casual;
 
   const queryHints = [];
-  if (/party|wedding|festive/i.test(query)) queryHints.push("blush", "lipstick");
+  if (/party|wedding|festive/i.test(query))
+    queryHints.push("blush", "lipstick");
   if (/glow|dewy/i.test(query)) queryHints.push("makeup spray");
   if (/simple|light|natural/i.test(query)) queryHints.push("concealer");
 
@@ -41,15 +46,16 @@ const buildMakeupPatterns = (occasion = "casual", makeupLook = null, query = "")
 const fetchMakeupProducts = async (
   occasion = "casual",
   makeupLook = null,
-  query = ""
-) => {  const keywords = buildMakeupPatterns(occasion, query);
+  query = "",
+) => {
+  const keywords = buildMakeupPatterns(occasion, query);
 
   const products = await Promise.all(
     keywords.map(async (keyword) => {
-      const pattern = new RegExp(keyword.replace(/\s+/g, "\\s+"), "i");
-
       return Product.findOne({
-        productName: pattern,
+        category: "beauty",
+        subCategory: keyword,
+        isSearchable: true,
       })
         .sort({ rating: -1, currentPrice: 1 })
         .lean();
@@ -68,60 +74,63 @@ const fetchMakeupProducts = async (
 };
 
 export const fetchOutfitProducts = async (structure = {}, query = "") => {
+  console.log("===== fetchOutfitProducts CALLED =====");
+  console.log(structure);
   const topCategory = structure.top || "tshirt";
   const bottomCategory = structure.bottom || "jeans";
   const occasion = structure.occasion || "casual";
   const shouldShowMakeup =
-  structure.gender === "women" &&
-  structure.makeupLook &&
-  structure.makeupLook !== "none";
+    structure.gender === "women" &&
+    structure.makeupLook &&
+    structure.makeupLook !== "none";
 
-if (topCategory === "dress") {
-  const [dresses, makeup] = await Promise.all([
+  if (topCategory === "dresses") {
+    const [dresses, makeup] = await Promise.all([
+      searchProducts({
+        category: "fashion",
+        subCategory: "dresses",
+        gender: structure.gender,
+        style: structure.style,
+      }),
+
+      shouldShowMakeup
+        ? fetchMakeupProducts(occasion, structure.makeupLook, query)
+        : Promise.resolve([]),
+    ]);
+
+    return {
+      top: dresses.slice(0, 2),
+      bottom: null,
+      makeup,
+    };
+  }
+
+  const [tops, bottoms, makeup] = await Promise.all([
     searchProducts({
-      category: "dresses",
+      category: "fashion",
+      subCategory: topCategory,
+      gender: structure.gender,
       style: structure.style,
     }),
 
-      shouldShowMakeup
-      ? fetchMakeupProducts(
-          occasion,
-          structure.makeupLook,
-          query
-        )
+    searchProducts({
+      category: "fashion",
+      subCategory: bottomCategory,
+      gender: structure.gender,
+      style: structure.style,
+    }),
+
+    shouldShowMakeup
+      ? fetchMakeupProducts(occasion, structure.makeupLook, query)
       : Promise.resolve([]),
   ]);
+  console.log("Gender:", structure.gender);
+  console.log("Makeup Look:", structure.makeupLook);
+  console.log("Should Show Makeup:", shouldShowMakeup);
 
   return {
-    top: dresses.slice(0, 2),
-    bottom: null,
+    top: tops.slice(0, 2),
+    bottom: bottoms.slice(0, 2),
     makeup,
   };
-}
-
-const [tops, bottoms, makeup] = await Promise.all([
-  searchProducts({
-    category: topCategory,
-    style: structure.style,
-  }),
-
-  searchProducts({
-    category: bottomCategory,
-    style: structure.style,
-  }),
-
- shouldShowMakeup
-    ? fetchMakeupProducts(
-        occasion,
-        structure.makeupLook,
-        query
-      )
-    : Promise.resolve([]),
-]);
-
-return {
-  top: tops.slice(0, 2),
-  bottom: bottoms.slice(0, 2),
-  makeup,
-};
 };
